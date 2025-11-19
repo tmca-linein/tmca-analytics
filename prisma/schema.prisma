@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model WrikeUser {
+  id          String @id
+  firstName   String
+  lastName    String
+  primaryEmail String?
+  type        String
+  avatarUrl   String
+  sharedItems WrikeUserItems[]
+  authoredItems WrikeItem[]
+  deleted     Boolean
+}
+
+model WrikeItem {
+  id         String   @id
+  title      String
+  itemType   String
+  author     WrikeUser? @relation(fields: [authorId], references: [id])
+  authorId   String?
+  parentId   String?
+  parent     WrikeItem?   @relation("Subitems", fields: [parentId], references: [id])
+  children   WrikeItem[]  @relation("Subitems")
+  warning    String
+  sharedWith WrikeUserItems[]
+  permalink  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+}
+
+model WrikeUserItems {
+  user        WrikeUser     @relation(fields: [userId], references: [id])
+  userId      String
+  wrikeItem   WrikeItem     @relation(fields: [wrikeItemId], references: [id])
+  wrikeItemId String
+
+  @@id([userId, wrikeItemId])
+}
