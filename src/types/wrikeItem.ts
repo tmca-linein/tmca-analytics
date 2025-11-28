@@ -1,17 +1,20 @@
 import { WrikeUser } from "@/generated/prisma/client";
 
-export interface WrikeApiSpaceResponse {
-    data: WrikeSpace[];
+export interface WrikeApiFolderTreeResponse {
+    data: WrikeFolderTree[];
 }
 
 export interface WrikeApiFolderResponse {
     data: WrikeFolder[];
 }
 
+export interface WrikeApiTasksResponse {
+    data: WrikeTask[]
+}
+
 export interface WrikeApiContactsResponse {
     data: ApiWrikeUser[]
 }
-
 
 export type ApiWrikeUser = WrikeUser & {
     profiles?: unknown;
@@ -48,6 +51,7 @@ export type WrikeFolder = {
     childIds: string[];
     superParentIds: string[];
     scope: string;
+    space: boolean;
     hasAttachments: boolean;
     permalink: string;
     workflowId: string;
@@ -55,15 +59,21 @@ export type WrikeFolder = {
     customFields: string[];
 }
 
-export type WrikeSpace = {
+export type WrikeTask = {
     id: string;
+    accountId: string;
     title: string;
-    avatarUrl: string;
-    accessType: string;
-    archived: boolean;
-    guestRoleId: string;
-    defaultProjectWorkflowId: string;
-    defaultTaskWorkflowId: string;
+    sharedIds: string[];
+    authorIds: string[];
+    status: string;
+    importance: string;
+    createdDate: string;
+    updatedDate: string;
+    dates: any;
+    scope: string;
+    customStatusId: string;
+    permalink: string;
+    priority: string;
 }
 
 export type WrikeFolderTreeProject = {
@@ -79,7 +89,6 @@ export type WrikeFolderTree = {
     title: string;
     childIds: string[];
     scope: string;
-    space: boolean;
     permalink?: string;
     project?: WrikeFolderTreeProject;
 };

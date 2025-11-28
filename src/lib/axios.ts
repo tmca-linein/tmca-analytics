@@ -48,7 +48,7 @@ export async function axiosRequest<T = unknown>(
   return api.request<T>({
     url: endpoint,
     method: type,
-    data,
+    ...(data !== undefined && type !== "GET" ? { data } : {}),
     ...config,
   })
 }

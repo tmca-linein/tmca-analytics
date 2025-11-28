@@ -9,6 +9,8 @@ import prisma from "./lib/db";
 //         console.error("❌ Error running cron job:", err);
 //     }
 // });
+console.log('SYNC APP: Current runtime:', process.env.NEXT_RUNTIME); // 'edge' or 'nodejs'
+
 
 (async () => {
     await syncWrikeData();

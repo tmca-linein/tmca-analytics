@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -15,38 +15,81 @@ datasource db {
 }
 
 model WrikeUser {
-  id          String @id
-  firstName   String
-  lastName    String
-  primaryEmail String?
-  type        String
-  avatarUrl   String
-  sharedItems WrikeUserItems[]
+  id            String           @id
+  // parentIds     WrikeUserParent[] @relation("ChildParents")
+  // childrenIds   WrikeUserParent[] @relation("ParentChildren")
+  firstName     String
+  lastName      String
+  primaryEmail  String?
+  type          String
+  avatarUrl     String
+  sharedItems   WrikeUserItems[]
   authoredItems WrikeItem[]
-  deleted     Boolean
+  deleted       Boolean
+  anfEvents     ANFEvent[]
+  commentEvents CommentEvent[]
 }
 
+// model WrikeUserParent {
+
+// }
+
+
 model WrikeItem {
-  id         String   @id
-  title      String
-  itemType   String
-  author     WrikeUser? @relation(fields: [authorId], references: [id])
-  authorId   String?
-  parentId   String?
-  parent     WrikeItem?   @relation("Subitems", fields: [parentId], references: [id])
-  children   WrikeItem[]  @relation("Subitems")
-  warning    String
-  sharedWith WrikeUserItems[]
-  permalink  String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
+  id            String            @id
+  title         String
+  itemType      String
+  author        WrikeUser?        @relation(fields: [authorId], references: [id])
+  authorId      String?
+  parentLinks   WrikeItemParent[] @relation("ChildParents")
+  childLinks    WrikeItemParent[] @relation("ParentChildren")
+  warning       String
+  sharedWith    WrikeUserItems[]
+  permalink     String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime
+  anfevents     ANFEvent[]
+  commentEvents CommentEvent[]
+}
+
+model WrikeItemParent {
+  parentId String
+  childId  String
+
+  parent WrikeItem @relation("ParentChildren", fields: [parentId], references: [id])
+  child  WrikeItem @relation("ChildParents", fields: [childId], references: [id])
+
+  @@id([parentId, childId])
+  @@index([parentId])
+  @@index([childId])
 }
 
 model WrikeUserItems {
-  user        WrikeUser     @relation(fields: [userId], references: [id])
+  user        WrikeUser @relation(fields: [userId], references: [id])
   userId      String
-  wrikeItem   WrikeItem     @relation(fields: [wrikeItemId], references: [id])
+  wrikeItem   WrikeItem @relation(fields: [wrikeItemId], references: [id])
   wrikeItemId String
 
   @@id([userId, wrikeItemId])
+}
+
+model ANFEvent {
+  id             String    @id @default(uuid())
+  assingedUser   WrikeUser @relation(fields: [assignedUserId], references: [id])
+  assignedUserId String
+  wrikeItem      WrikeItem @relation(fields: [wrikeItemId], references: [id])
+  wrikeItemId    String
+  state          String
+  eventDate      DateTime
+
+  @@index([assignedUserId, state, eventDate])
+}
+
+model CommentEvent {
+  id          String    @id @default(uuid())
+  user        WrikeUser @relation(fields: [userId], references: [id])
+  userId      String
+  wrikeItem   WrikeItem @relation(fields: [wrikeItemId], references: [id])
+  wrikeItemId String
+  eventDate   DateTime
 }

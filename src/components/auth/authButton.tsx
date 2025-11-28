@@ -12,10 +12,10 @@ export function WrikeSignInButton() {
   return (
     <button
       onClick={handleClick}
-      className="w-full flex items-center font-semibold justify-center h-14 px-6 mt-4 text-xl  transition-colors duration-300 bg-white border-2 border-black text-black rounded-lg focus:shadow-outline hover:bg-slate-200"
+      className="w-full flex items-center font-semibold justify-center h-14 px-6 mt-4 text-xl bg-sidebar transition-colors duration-300 rounded-lg focus:shadow-outline hover:bg-sidebar/90"
     >
       {/* <Image src="" alt="Wrike Logo" width={20} height={20} /> */}
-      <span className="ml-4">SignIn with Wrike</span>
+      <span className="ml-4 text-white">SignIn with Wrike</span>
     </button>
   );
 }

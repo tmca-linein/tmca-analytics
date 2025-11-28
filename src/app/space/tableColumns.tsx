@@ -1,8 +1,9 @@
 "use client";
 
-import { ColumnDef, Row } from "@tanstack/react-table";
+import { SpaceItem } from "@/types/wrikeItem";
+import { ColumnDef } from "@tanstack/react-table";
 import { ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight, Satellite, Folder, StickyNote, ClipboardList, Loader2, Link } from "lucide-react";
-import { SpaceItem } from "./types";
+
 
 export const getColumns = (): ColumnDef<SpaceItem>[] => [
   {
@@ -19,16 +20,18 @@ export const getColumns = (): ColumnDef<SpaceItem>[] => [
       </>
     ),
     cell: ({ row, table }) => {
-      const { onToggleExpand, loadingRows } = table.options.meta ?? {};
+      const { onRowExpand, loadingRows } = table.options.meta ?? {};
       const isLoading = loadingRows?.[row.original.itemId];
 
       return (
-        <div style={{ paddingLeft: `${row.depth * 2}rem` }}>
+        <div style={{ paddingLeft: `${row.depth}rem` }}>
           {row.getCanExpand() ? (
             <button
               onClick={() => {
-                onToggleExpand?.(row);
                 row.toggleExpanded();
+                if (!row.getIsExpanded()) {
+                  onRowExpand?.(row.original.itemId);
+                }
               }}
               className="p-1"
             >
@@ -54,7 +57,7 @@ export const getColumns = (): ColumnDef<SpaceItem>[] => [
     accessorKey: "itemType",
     header: "Item Type",
     cell: ({ row, getValue }) => {
-      const type = getValue<string>(); 
+      const type = getValue<string>();
       const Icon = type === "Space"
         ? Satellite
         : type === "Folder"
@@ -78,14 +81,20 @@ export const getColumns = (): ColumnDef<SpaceItem>[] => [
   {
     accessorKey: "sharedWith",
     header: "SharedWith",
+    cell: ({ row }) => {
+      const sharedWith = row.original.sharedWith;
+      if (!sharedWith || sharedWith.length === 0) return <span className="text-muted-foreground">—</span>;
+
+      return <span>{(sharedWith as string[]).join(", ")}</span>;
+    },
   },
   {
     accessorKey: "permalink",
     header: "Link",
     cell: ({ row, getValue }) => {
-      const url = getValue<string>(); 
+      const url = getValue<string>();
       return url ? (
-        <a href={url}><Link className="w-4 h-4 text-gray-600"/></a>
+        <a href={url}><Link className="w-4 h-4 text-gray-600" /></a>
       ) : <></>;
     },
   }

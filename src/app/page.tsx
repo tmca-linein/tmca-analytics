@@ -1,12 +1,10 @@
 
 'use client'
+
 import {
   WrikeSignInButton
 } from "@/components/auth/authButton";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { useSession, signOut} from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 export default function SignInPage() {
   const { data: session } = useSession()
