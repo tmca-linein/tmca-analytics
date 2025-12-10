@@ -83,9 +83,9 @@ export const getColumns = (): ColumnDef<SpaceItem>[] => [
     header: "SharedWith",
     cell: ({ row }) => {
       const sharedWith = row.original.sharedWith;
-      if (!sharedWith || sharedWith.length === 0) return <span className="text-muted-foreground">—</span>;
+      if (!sharedWith || sharedWith === '') return <span className="text-muted-foreground">—</span>;
 
-      return <span>{(sharedWith as string[]).join(", ")}</span>;
+      return <span>{(sharedWith )}</span>;
     },
   },
   {

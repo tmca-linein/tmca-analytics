@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
 function verifyWrikeSignature(req: NextRequest, bodyText: string) {
-    const signature = req.headers.get("x-wrike-signature");
+    const signature = req.headers.get("X-Hook-Secret");
     const secret = process.env.WRIKE_WEBHOOK_SECRET!;
     const expected = crypto
         .createHmac("sha256", secret)

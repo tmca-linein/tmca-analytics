@@ -43,10 +43,10 @@ export default function LoginPage() {
 
                         <div className="mt-12">
                             {/* Single Button - Full Match to Your Design */}
-                            <WrikeSignInButton className="bg-sidebar"/>
+                            <WrikeSignInButton/>
 
                             <p className="mt-6 text-center text-xs text-gray-500">
-                                By continuing, you agree to TMV Capital's{' '}
+                                By continuing, you agree to TMV Capital&apos;s{' '}
                                 <a href="#" className="font-medium text-green-900 hover:text-green-700">
                                     Terms of Service
                                 </a>{' '}

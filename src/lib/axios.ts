@@ -10,14 +10,14 @@ export const api = axios.create({
 });
 
 async function getHeaderConfig(): Promise<AxiosRequestConfig | undefined> {
-  const cookieStore = await cookies()
-  const sessionToken = cookieStore.get(process.env.NEXTAUTH_SESSION_TOKEN as string)?.value
-  if (!sessionToken) return undefined
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(process.env.NEXTAUTH_SESSION_TOKEN as string)?.value;
+  if (!sessionToken) return undefined;
 
   const token = await decode({
     token: sessionToken,
     secret: process.env.NEXTAUTH_SECRET!,
-  })
+  });
 
   const accessToken = token?.accessToken;
 
@@ -42,7 +42,7 @@ export async function axiosRequest<T = unknown>(
       },
     }
   } else {
-    config = await getHeaderConfig()
+    config = await getHeaderConfig();
   }
 
   return api.request<T>({

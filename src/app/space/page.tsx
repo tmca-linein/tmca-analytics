@@ -1,108 +1,162 @@
+import { SpaceItem, WrikeApiFolderResponse, WrikeApiSpaceResponse, WrikeApiTasksResponse, WrikeSpace, WrikeTask } from "@/types/wrikeItem";
 import { SpaceItemsTable } from "./SpaceItemsTable";
-import prisma from '@/lib/db';
+import { axiosRequest } from "@/lib/axios";
+import { getUserName } from "@/cache/user-cache";
+import { getChildrenBatch } from "./cachedWrikeItemRetriever";
+import pLimit from 'p-limit';
+const limit = pLimit(20);
 
-const fetchSpaceItemTree = async () => {
-  const spaces = await prisma.wrikeItem.findMany({
-    where: {
-      itemType: "Space",
-      parentLinks: { none: {} },
-    },
-    select: {
-      id: true,
-      title: true,
-      warning: true,
-      permalink: true,
-      itemType: true,
+type SpaceWithMetadata = WrikeSpace & {
+    permalink: string;
+    sharedIds: string[];
+    childIds: string[];
+}
 
-      author: {
-        select: {
-          firstName: true,
-          lastName: true,
-        },
-      },
+function chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+}
 
-      sharedWith: {
-        select: {
-          user: {
-            select: {
-              firstName: true,
-              lastName: true,
-            },
-          },
-        },
-      },
+async function getAllSpaceChildren(spaces: SpaceWithMetadata[]): Promise<SpaceItem[]> {
+    const allChildIds = spaces.flatMap(s => s.childIds);
+    if (allChildIds.length === 0) return [];
 
-      childLinks: {
-        select: {
-          child: {
-            select: {
-              id: true,
-              title: true,
-              itemType: true,
-              warning: true,
-              permalink: true,
+    // Batch fetch up to 100 folders at once (Wrike supports /folders/id1,id2,...)
+    const batches: string[][] = [];
+    for (let i = 0; i < allChildIds.length; i += 100) {
+        batches.push(allChildIds.slice(i, i + 100));
+    }
 
-              author: {
-                select: { firstName: true, lastName: true },
-              },
-              sharedWith: {
-                select: {
-                  user: {
-                    select: { firstName: true, lastName: true },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+    const folderChunks = chunkArray(allChildIds, 100);
+    const allFolderResponses = await Promise.all(
+        folderChunks.map((chunk) =>
+            limit(() => axiosRequest<WrikeApiFolderResponse>('GET', `/folders/${chunk.join(',')}`))
+        )
+    );
 
-  const result = spaces.map(space => ({
-    itemId: space.id,
-    itemName: space.title,
-    itemType: space.itemType,
-    author: space.author ? `${space.author?.firstName} ${space.author?.lastName}` : "",
-    childIds: space.childLinks.map(link => link.child.id),
-    subRows: space.childLinks.map(link => {
-      const child = link.child;
-      return {
-        itemId: child.id,
-        itemName: child.title,
-        itemType: child.itemType,
-        author: space.author ? `${space.author?.firstName} ${space.author?.lastName}` : "",
-        childIds: [],
+    const childFolders = allFolderResponses.flatMap(r => r.data.data);
+    const items: SpaceItem[] = await Promise.all(
+        childFolders.map(async f => ({
+            itemId: f.id,
+            itemName: f.title,
+            itemType: f.project ? "Project" : "Folder",
+            author: f.project?.authorId ? await getUserName(f.project.authorId) || "" : "",
+            folderChildIds: f.childIds || [],
+            taskChildIds: [],
+            subRows: [],
+            warning: "",
+            sharedWith: (await Promise.all(
+                f.sharedIds.map(getUserName)
+            )).filter(Boolean)
+                .join(", "),
+            permalink: f.permalink,
+        }))
+    );
+
+    return items;
+}
+
+async function getAllSpaceTasks(spaces: WrikeSpace[]): Promise<SpaceItem[]> {
+    const allTasksWithParent = (
+        await Promise.all(
+            spaces.map(async (space) => {
+                const res = await limit(() =>
+                    axiosRequest<WrikeApiTasksResponse>('GET', `/folders/${space.id}/tasks`, {
+                        params: { fields: '["sharedIds","authorIds","subTaskIds"]' }
+                    }).catch(() => ({ data: { data: [] } }))
+                );
+
+                return res.data.data.map((task: WrikeTask) => ({
+                    task,
+                    parentId: space.id,
+                }));
+            })
+        )
+    ).flat();
+
+    return Promise.all(
+        allTasksWithParent.map(async ({ task, parentId }) => ({
+            itemId: task.id,
+            itemName: task.title,
+            itemType: "Task" as const,
+            author: task.authorIds?.[0] ? await getUserName(task.authorIds[0]) || "" : "",
+            parentId,
+            folderChildIds: [],
+            taskChildIds: task.subTaskIds || [],
+            subRows: [],
+            warning: "",
+            sharedWith: task.sharedIds?.length
+                ? (await Promise.all(task.sharedIds.map(getUserName))).filter(Boolean).join(", ")
+                : "",
+            permalink: task.permalink,
+        }))
+    );
+}
+
+async function fetchSpacesWithMetadata(): Promise<SpaceWithMetadata[]> {
+    const { data } = await axiosRequest<{ data: WrikeSpace[] }>('GET', '/spaces');
+    const spaces = data.data;
+
+    const folderResponses = await Promise.all(
+        spaces.map(space =>
+            limit(() => axiosRequest<WrikeApiFolderResponse>('GET', `/folders/${space.id}`))
+        )
+    );
+
+    return spaces.map((space, i) => {
+        const folder = folderResponses[i]?.data?.data?.[0];
+        if (!folder) return { ...space, permalink: "", sharedIds: [], childIds: []};
+        return {
+            ...space,
+            permalink: folder.permalink,
+            sharedIds: folder.sharedIds || [],
+            childIds: folder.childIds || [],
+        };
+    });
+}
+
+const fetchSpaceItems = async (): Promise<SpaceItem[]> => {
+    const spaces = await fetchSpacesWithMetadata();
+    const [childItems, taskItems] = await Promise.all([
+        getAllSpaceChildren(spaces),
+        getAllSpaceTasks(spaces),
+    ]);
+
+    const spaceItems: SpaceItem[] = await Promise.all(spaces.map(async s => {
+        return ({
+        itemId: s.id,
+        itemName: s.title,
+        itemType: "Space",
+        author: "",
+        folderChildIds: s.childIds || [],
+        taskChildIds: taskItems.filter(t => t.parentId === s.id).map(t => t.itemId),
         subRows: [],
-        warning: child.warning || "",
-        sharedWith: child.sharedWith.map(e => `${e.user?.firstName} ${e.user?.lastName}`),
-        permalink: child.permalink,
-      };
-    }),
+        warning: "",
+        sharedWith: (await Promise.all(
+            s.sharedIds.map(getUserName)
+        )).filter(Boolean)
+            .join(", "),
+        permalink: s.permalink,
+    })}));
 
-    warning: space.warning || "",
-    sharedWith: space.sharedWith.map(e => `${e.user?.firstName} ${e.user?.lastName}`),
-    permalink: space.permalink,
-  }));
-
-  return result;
+    return [...spaceItems, ...childItems, ...taskItems];
 };
 
-
 const SpaceItemsPage = async () => {
-  const data = await fetchSpaceItemTree();
-  console.log('Spaces: Current runtime:', process.env.NEXT_RUNTIME); // 'edge' or 'nodejs'
-
-  return (
-    <>
-      <div className="mb-8 px-4 py-2 bg-secondary rounded-md">
-        <h1 className="font-semibold">Space overview</h1>
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <SpaceItemsTable initialData={data} />
-      </div>
-    </>
-  );
+    const data = await fetchSpaceItems();
+    return (
+        <>
+            <div className="mb-8 px-4 py-2 bg-secondary rounded-md">
+                <h1 className="font-semibold">Space overview</h1>
+            </div>
+            <div className="flex-1 overflow-hidden">
+                <SpaceItemsTable initialData={data} dataFetcher={getChildrenBatch} />
+            </div>
+        </>
+    );
 };
 
 export default SpaceItemsPage;

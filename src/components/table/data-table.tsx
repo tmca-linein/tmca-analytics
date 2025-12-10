@@ -5,7 +5,6 @@ import {
   flexRender,
   getCoreRowModel,
   getExpandedRowModel,
-  SortingState,
   ExpandedState,
   useReactTable,
   Row,
@@ -14,7 +13,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { useEffect, useRef } from "react";
 
-interface DataTableProps<TData, TValue> {
+interface DataTableProps<TData extends { subRows?: TData[] }, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   meta?: {
@@ -24,7 +23,7 @@ interface DataTableProps<TData, TValue> {
   }
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends { subRows?: TData[] }, TValue>({
   columns,
   data,
   meta
@@ -33,10 +32,13 @@ export function DataTable<TData, TValue>({
   const [offset, setOffset] = useState(0);
   const headerRef = useRef<HTMLTableSectionElement>(null);
 
+
+
   useEffect(() => {
     if (headerRef.current) setOffset(headerRef.current.offsetHeight);
     table.resetColumnSizing(true); // true = force re-measure
   }, []);
+
 
   const table = useReactTable({
     data,
@@ -47,7 +49,7 @@ export function DataTable<TData, TValue>({
     getSubRows: (row) => row.subRows ?? [],
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
-    getRowCanExpand: (row) => row.original.subRows && row.original.subRows.length > 0,
+    getRowCanExpand: (row) => !!(row.original.subRows?.length ?? 0 > 0),
     state: {
       expanded
     },

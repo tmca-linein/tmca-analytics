@@ -13,7 +13,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import { SidebarTrigger } from "./ui/sidebar";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 const Navbar = () => {
   const { setTheme } = useTheme();
@@ -50,7 +50,7 @@ const Navbar = () => {
         <DropdownMenu>
           <DropdownMenuTrigger>
             <Avatar>
-              <AvatarImage src={session?.user?.image} />
+              <AvatarImage src={session?.user?.image ?? undefined} />
               <AvatarFallback>{session?.user?.name?.split(" ").map(n => n[0]).join("").toUpperCase()}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
@@ -65,8 +65,8 @@ const Navbar = () => {
               <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive">
-              <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
+            <DropdownMenuItem variant="destructive" onClick={()=>signOut()}>
+              <LogOut className="h-[1.2rem] w-[1.2rem] mr-2"/>
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

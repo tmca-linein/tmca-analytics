@@ -1,6 +1,67 @@
 import prisma from '@/lib/db';
 import { startOfDay, startOfWeek, startOfMonth, endOfDay, endOfMonth, endOfWeek } from 'date-fns';
 import { UsersTable } from './WrikeUsersTable';
+import { axiosRequest } from '@/lib/axios';
+import { ApiWrikeUserGroup, WrikeApiContactsResponse, WrikeApiUserGroupResponse } from '@/types/user';
+import { getServerSession } from 'next-auth';
+import { authConfig } from '@/lib/auth';
+import pLimit from 'p-limit';
+const limit = pLimit(10);
+
+
+const getRecursiveSubOrdinates = (allGroups: ApiWrikeUserGroup[], rootId: string): string[] => {
+  const groupMap = new Map(allGroups.map(g => [g.id, g]));
+  const leaves: string[] = [];
+  const stack = [rootId];
+
+  while (stack.length > 0) {
+    const currentId = stack.pop()!;
+    const currentGroup = groupMap.get(currentId);
+
+    if (!currentGroup) continue;
+
+    const children = allGroups.filter(g => 
+      g.parentIds.includes(currentId)
+    );
+
+    for (const child of children) {
+      if (child.childIds.length === 0) {
+        leaves.push(child.id);
+      } else {
+        stack.push(child.id);
+      }
+    }
+  }
+
+  return leaves;
+};
+
+const getSubOrdinates = async (userId: string) => {
+  const userGroupsResponse = await axiosRequest<WrikeApiUserGroupResponse>("GET", "/groups");
+  const userGroups = userGroupsResponse?.data?.data;
+  const ceoUserGroups = userGroups.filter(ug => ug.title.endsWith("CEO"))
+  const ceoOf = ceoUserGroups.filter(ug => ug.memberIds.includes(userId))
+  if (!ceoOf || ceoOf.length === 0) return [];
+  const companyParentGroup = ceoOf[0].parentIds[0];
+  const leafMemberGroups = getRecursiveSubOrdinates(userGroups, companyParentGroup)
+  const response = await axiosRequest<WrikeApiContactsResponse>("GET", '/contacts?types=["Group"]');
+  const groupsWithMembers = response.data.data;
+  const memberIds = groupsWithMembers.filter(g => leafMemberGroups.includes(g.id))
+    .map(leaf => !!leaf.memberIds ? leaf.memberIds : [])
+    .reduce((prev, cur) => [...prev, ...cur], []);
+  if (memberIds.length === 0) return [];
+  const userResponses = await Promise.all(
+    memberIds.map(memId => limit(async () => {
+      return axiosRequest<WrikeApiContactsResponse>(
+        "GET",
+        `/users/${memId}`
+      ).catch(() => ({ data: { data: [] } }))
+    }))
+  );
+
+  const allSubOrdinates = userResponses.flatMap((res) => res.data.data);
+  return allSubOrdinates;
+}
 
 const fetchWrikeUsers = async () => {
   const now = new Date();
@@ -128,38 +189,30 @@ const fetchWrikeUsers = async () => {
   );
 
   // Now fetch users and attach the counts
-  const users = await prisma.wrikeUser.findMany({
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      primaryEmail: true,
-      deleted: true
-    },
-  });
+  const session = await getServerSession(authConfig);
+  if (session) {
+    const users = await getSubOrdinates(session.user?.id);
+    const result = users.filter(u => !u.deleted).map(user => ({
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      primaryEmail: user.primaryEmail,
+      anfAddedToday: addedTodayMap[user.id] ?? 0,
+      anfAddedThisWeek: addedWeekMap[user.id] ?? 0,
+      anfAddedThisMonth: addedMonthMap[user.id] ?? 0,
+      anfRemovedToday: removedTodayMap[user.id] ?? 0,
+      anfRemovedThisWeek: removedWeekMap[user.id] ?? 0,
+      anfRemovedThisMonth: removedMonthMap[user.id] ?? 0,
+    }));
+    return result;
+  }
 
-  const result = users.filter(u=> !u.deleted).map(user => ({
-    id: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    primaryEmail: user.primaryEmail,
-    anfAddedToday: addedTodayMap[user.id] ?? 0,
-    anfAddedThisWeek: addedWeekMap[user.id] ?? 0,
-    anfAddedThisMonth: addedMonthMap[user.id] ?? 0,
-
-    anfRemovedToday: removedTodayMap[user.id] ?? 0,
-    anfRemovedThisWeek: removedWeekMap[user.id] ?? 0,
-    anfRemovedThisMonth: removedMonthMap[user.id] ?? 0,
-
-  }));
-
-  return result;
+  return [];
 };
 
 
 const SpaceItemsPage = async () => {
   const data = await fetchWrikeUsers();
-  console.log('Users: Current runtime:', process.env.NEXT_RUNTIME); // 'edge' or 'nodejs'
 
   return (
     <>

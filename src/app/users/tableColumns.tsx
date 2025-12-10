@@ -1,11 +1,10 @@
 "use client";
 
-import { SpaceItem } from "@/types/wrikeItem";
+import { User } from "@/types/user";
 import { ColumnDef } from "@tanstack/react-table";
-import { ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight, Satellite, Folder, StickyNote, ClipboardList, Loader2, Link } from "lucide-react";
 
 
-export const getColumns = (): ColumnDef<SpaceItem>[] => [
+export const getColumns = (): ColumnDef<User>[] => [
   {
     accessorKey: "firstName",
     header: "First Name",
