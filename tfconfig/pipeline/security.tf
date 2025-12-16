@@ -1,7 +1,7 @@
 resource "aws_security_group" "rds_sg" {
   name        = "tmca-analytics-rds-sg"
   description = "Allow database access"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = data.aws_ssm_parameter.tmca_vpc_id.value
 
   ingress {
     description = "Allow PostgreSQL from private subnets"
@@ -10,6 +10,7 @@ resource "aws_security_group" "rds_sg" {
     protocol    = "tcp"
     security_groups = [
       module.tmca-analytics-engine.ecs_sg,
+      "sg-0777984bc828a6ac5"
     ]
   }
 

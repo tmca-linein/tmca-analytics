@@ -20,9 +20,16 @@ variable "database_subnets" {
   description = ""
 }
 
+variable "subnet_group_name" {
+  type        = string
+  description = ""
+  default     = ""
+}
+
 
 variable "security_group" {
   type        = string
   description = ""
   default     = ""
 }
+

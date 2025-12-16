@@ -47,35 +47,35 @@ resource "aws_iam_policy" "ecs_agent_policy" {
   name = "tmcaa_ecs_agent_policy"
 
   policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Action = [
-            "ecr:GetAuthorizationToken",
-            "ecr:BatchCheckLayerAvailability",
-            "ecr:GetDownloadUrlForLayer",
-            "ecr:GetRepositoryPolicy",
-            "ecr:DescribeRepositories",
-            "ecr:ListImages",
-            "ecr:DescribeImages",
-            "ecr:BatchGetImage",
-            "ecr:GetLifecyclePolicy",
-            "ecr:GetLifecyclePolicyPreview",
-            "ecr:ListTagsForResource",
-            "ecr:DescribeImageScanFindings",
-            "logs:PutLogEvents",
-            "logs:CreateLogStream",
-            "logs:CreateLogGroup",
-            "ssm:GetParameter*",
-            "kms:Decrypt",
-            "secretsmanager:GetSecretValue",
-            "secretsmanager:DescribeSecret",
-          ]
-          Effect   = "Allow"
-          Resource = "*"
-        },
-      ]
-    })
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages",
+          "ecr:BatchGetImage",
+          "ecr:GetLifecyclePolicy",
+          "ecr:GetLifecyclePolicyPreview",
+          "ecr:ListTagsForResource",
+          "ecr:DescribeImageScanFindings",
+          "logs:PutLogEvents",
+          "logs:CreateLogStream",
+          "logs:CreateLogGroup",
+          "ssm:GetParameter*",
+          "kms:Decrypt",
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
 }
 
 
@@ -106,37 +106,37 @@ resource "aws_iam_role" "ecs_task_role" {
 }
 
 resource "aws_iam_policy" "ecs_agent_ssm_policy" {
-    name = "tmcaa_ecs_agent_policy"
-    # ssmmessages:CreateControlChannel
-    # - Enables the establishment of a control channel for managing interactions and command signals between AWS Systems Manager and your resources.
+  name = "tmcaa_ecs_agent_ssm_policy"
+  # ssmmessages:CreateControlChannel
+  # - Enables the establishment of a control channel for managing interactions and command signals between AWS Systems Manager and your resources.
 
-    # ssmmessages:CreateDataChannel 
-    # - Allows the creation of a data channel for transferring data between Systems Manager and your resources during sessions.
+  # ssmmessages:CreateDataChannel 
+  # - Allows the creation of a data channel for transferring data between Systems Manager and your resources during sessions.
 
-    # ssmmessages:OpenControlChannel 
-    # - Permits the opening of an established control channel to start communications for session management.
+  # ssmmessages:OpenControlChannel 
+  # - Permits the opening of an established control channel to start communications for session management.
 
-    # ssmmessages:OpenDataChannel 
-    # - Facilitates the opening of an established data channel to enable the transfer of data during active sessions with Systems Manager.
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Effect = "Allow",
-          Action = [
-            "ssmmessages:CreateControlChannel",
-            "ssmmessages:CreateDataChannel",
-            "ssmmessages:OpenControlChannel",
-            "ssmmessages:OpenDataChannel",
-            "ssm:GetParameter*",
-            "states:StartExecution",
-            "secretsmanager:GetSecretValue",
-            "kms:Decrypt"
-          ],
-          Resource = "*"
-        }
-      ]
-    })
+  # ssmmessages:OpenDataChannel 
+  # - Facilitates the opening of an established data channel to enable the transfer of data during active sessions with Systems Manager.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel",
+          "ssm:GetParameter*",
+          "states:StartExecution",
+          "secretsmanager:GetSecretValue",
+          "kms:Decrypt"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "ecs-ssm-attach" {

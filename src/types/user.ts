@@ -49,3 +49,13 @@ export type ApiWrikeUser = {
     userTypeId: string;
     primaryEmail?: string;
 };
+
+
+export interface WrikeLegacyIdConversionResponse {
+    data: ApiWrikeLegacyUserIdConversion[]
+}
+
+export type ApiWrikeLegacyUserIdConversion = {
+    id: string;
+    apiV2Id: string;
+}

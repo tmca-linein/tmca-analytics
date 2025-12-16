@@ -14,12 +14,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model ANFEvent {
-  id             String    @id @default(uuid())
-  assingedUser   String
+  id             String   @id @default(uuid())
   assignedUserId String
-  wrikeItem      String
   wrikeItemId    String
   state          String
   eventDate      DateTime
@@ -28,10 +25,8 @@ model ANFEvent {
 }
 
 model CommentEvent {
-  id          String    @id @default(uuid())
-  user        String
+  id          String   @id @default(uuid())
   userId      String
-  wrikeItem   String
   wrikeItemId String
   eventDate   DateTime
 }

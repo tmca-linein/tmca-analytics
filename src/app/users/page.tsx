@@ -2,7 +2,7 @@ import prisma from '@/lib/db';
 import { startOfDay, startOfWeek, startOfMonth, endOfDay, endOfMonth, endOfWeek } from 'date-fns';
 import { UsersTable } from './WrikeUsersTable';
 import { axiosRequest } from '@/lib/axios';
-import { ApiWrikeUserGroup, WrikeApiContactsResponse, WrikeApiUserGroupResponse } from '@/types/user';
+import { ApiWrikeUserGroup, WrikeApiContactsResponse, WrikeApiUserGroupResponse, WrikeLegacyIdConversionResponse } from '@/types/user';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
 import pLimit from 'p-limit';
@@ -20,7 +20,7 @@ const getRecursiveSubOrdinates = (allGroups: ApiWrikeUserGroup[], rootId: string
 
     if (!currentGroup) continue;
 
-    const children = allGroups.filter(g => 
+    const children = allGroups.filter(g =>
       g.parentIds.includes(currentId)
     );
 
@@ -120,6 +120,14 @@ const fetchWrikeUsers = async () => {
     }),
   ]);
 
+  const uniqueLegacyUsers = await prisma.aNFEvent.findMany({
+    distinct: ["assignedUserId"],
+    select: { assignedUserId: true },
+  });
+  const uniqueAssignedUserIds = uniqueLegacyUsers.map(u => u.assignedUserId);
+  const userIdsMappingResponse = await axiosRequest<WrikeLegacyIdConversionResponse>("GET", `/ids?type=ApiV2User&ids=[${uniqueAssignedUserIds.join(',')}]`);
+  const userIdsMapping = userIdsMappingResponse?.data.data ?? [];
+
   const [removedTodayCounts, removedWeekCounts, removedMonthCounts] = await Promise.all([
     // Today
     prisma.aNFEvent.groupBy({
@@ -192,18 +200,21 @@ const fetchWrikeUsers = async () => {
   const session = await getServerSession(authConfig);
   if (session) {
     const users = await getSubOrdinates(session.user?.id);
-    const result = users.filter(u => !u.deleted).map(user => ({
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      primaryEmail: user.primaryEmail,
-      anfAddedToday: addedTodayMap[user.id] ?? 0,
-      anfAddedThisWeek: addedWeekMap[user.id] ?? 0,
-      anfAddedThisMonth: addedMonthMap[user.id] ?? 0,
-      anfRemovedToday: removedTodayMap[user.id] ?? 0,
-      anfRemovedThisWeek: removedWeekMap[user.id] ?? 0,
-      anfRemovedThisMonth: removedMonthMap[user.id] ?? 0,
-    }));
+    const result = users.filter(u => !u.deleted).map(user => {
+      const userMapping = userIdsMapping.filter(m => m.id === user.id)[0]
+      return ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        primaryEmail: user.primaryEmail,
+        anfAddedToday: !!userMapping ? addedTodayMap[userMapping.apiV2Id] : 0,
+        anfAddedThisWeek: !!userMapping ? addedWeekMap[userMapping.apiV2Id] : 0,
+        anfAddedThisMonth: !!userMapping ? addedMonthMap[userMapping.apiV2Id] : 0,
+        anfRemovedToday: !!userMapping ? removedTodayMap[userMapping.apiV2Id] : 0,
+        anfRemovedThisWeek: !!userMapping ? removedWeekMap[userMapping.apiV2Id] : 0,
+        anfRemovedThisMonth: !!userMapping ? removedMonthMap[userMapping.apiV2Id] : 0,
+      })
+    });
     return result;
   }
 

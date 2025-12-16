@@ -19,6 +19,7 @@ interface DataTableProps<TData extends { subRows?: TData[] }, TValue> {
   meta?: {
     loadingRows?: Record<string, boolean>;
     onRowExpand?: (rowId: string) => void;
+    onRowClicked?: (rowId: string) => void;
     getRowClassName?: (row: Row<TData>) => string;
   }
 }
@@ -84,7 +85,7 @@ export function DataTable<TData extends { subRows?: TData[] }, TValue>({
         <div className="inline-block min-w-full align-middle">
 
           {/* header */}
-          <div role="rowgroup" className="sticky bg-background top-0 z-20   " ref={headerRef}>
+          <div role="rowgroup" className="sticky bg-background top-0 z-20" ref={headerRef}>
             {table.getHeaderGroups().map(hg => (
               <div role="row" key={hg.id} className="grid" style={{
                 gridTemplateColumns
@@ -116,7 +117,8 @@ export function DataTable<TData extends { subRows?: TData[] }, TValue>({
           {/* body */}
           <div role="rowgroup" className="">
             {table.getRowModel().rows.map((row) => {
-              const { getRowClassName } = table.options.meta ?? {};
+              const { getRowClassName, onRowClicked } = table.options.meta ?? {};
+              const isClickable = !!onRowClicked;
               return (
                 <div
                   role="row"
@@ -129,6 +131,7 @@ export function DataTable<TData extends { subRows?: TData[] }, TValue>({
                     gridTemplateColumns,
                     top: `${offset}px`
                   }}
+                  onClick={() => onRowClicked?.((row.original as any).id)}
                 >
                   {row.getVisibleCells().map((cell, index) => {
                     return (

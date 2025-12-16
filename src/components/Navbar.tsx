@@ -1,6 +1,7 @@
 "use client"
 import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useTheme } from "next-themes"
 import {
@@ -16,12 +17,13 @@ import { SidebarTrigger } from "./ui/sidebar";
 import { useSession, signOut } from "next-auth/react";
 
 const Navbar = () => {
+  const router = useRouter();
   const { setTheme } = useTheme();
   const { data: session } = useSession()
   return (
     <nav className="p-4 flex items-center justify-between sticky top-0 bg-background z-10">
       {/* Left */}
-      <SidebarTrigger/>
+      <SidebarTrigger />
       {/* Right */}
       <div className="flex items-center gap-4">
         <Link href="/">Dashboard</Link>
@@ -57,7 +59,7 @@ const Navbar = () => {
           <DropdownMenuContent sideOffset={10}>
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push(`/users/${session?.user?.id}`)}>
               <User className="h-[1.2rem] w-[1.2rem] mr-2" />
               Profile
             </DropdownMenuItem>
@@ -65,8 +67,8 @@ const Navbar = () => {
               <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={()=>signOut()}>
-              <LogOut className="h-[1.2rem] w-[1.2rem] mr-2"/>
+            <DropdownMenuItem variant="destructive" onClick={() => signOut()}>
+              <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

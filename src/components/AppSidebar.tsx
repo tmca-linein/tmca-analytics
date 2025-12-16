@@ -28,12 +28,7 @@ const items = [
     title: "Space users",
     url: "/users",
     icon: User,
-  },
-  {
-    title: "Shared with me",
-    url: "/shared-with-me",
-    icon: Share2,
-  },
+  }
 ];
 
 const AppSidebar = () => {
@@ -44,16 +39,16 @@ const AppSidebar = () => {
     <Sidebar collapsible="icon">
       <SidebarHeader className="py-5">
         <SidebarMenu className="justify-between">
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                    <Link href="/">
-                    {state === 'expanded' ? <Image src="/tmca.png" alt="logo" width={140} height={24} /> : <Image src="/tmca_small.png" alt="logo" width={32} height={32} />}
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/">
+                {state === 'expanded' ? <Image src="/tmca.png" alt="logo" width={140} height={24} /> : <Image src="/tmca_small.png" alt="logo" width={32} height={32} />}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarSeparator/>
+      <SidebarSeparator />
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
@@ -67,7 +62,7 @@ const AppSidebar = () => {
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.title==="Inbox" && (
+                  {item.title === "Inbox" && (
                     <SidebarMenuBadge>25</SidebarMenuBadge>
                   )}
                 </SidebarMenuItem>

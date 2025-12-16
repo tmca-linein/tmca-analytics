@@ -5,7 +5,7 @@ variable "name" {
 }
 
 variable "subdomain" {
-  type = string
+  type        = string
   description = "Subdomain name"
 }
 
@@ -86,11 +86,19 @@ variable "private_subnets" {
 variable "alb_security_group_id" {
   description = "TMCA ALB security group id"
   type        = string
-  default     = []
 }
 
 variable "alb_listener_arn" {
   description = "TMCA ALB listener arn"
   type        = string
-  default     = []
+}
+
+variable "alb_dns_name" {
+  description = "TMCA ALB dns name"
+  type        = string
+}
+
+variable "alb_zone_id" {
+  description = "TMCA ALB zone id"
+  type        = string
 }

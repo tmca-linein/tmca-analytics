@@ -1,8 +1,9 @@
 Dockerfile
-.dockerignore
+    .dockerignore
 node_modules
-npm-debug.log
+npm - debug.log
 README.md
-.next
-.git
-.env*
+    .next
+    .git
+    .env.local
+    .env

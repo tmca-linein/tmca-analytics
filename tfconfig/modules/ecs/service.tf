@@ -26,51 +26,55 @@ resource "aws_ecs_task_definition" "main" {
         }
       }
       environment = [
-          {
-            name = "NEXTAUTH_URL",
-            value = local.nextauth_url
-          },
-          {
-            name = "NEXTAUTH_SESSION_TOKEN",
-            value = "next-auth.session-token"
-          },
-          {
-            name = "NEXT_PUBLIC_API",
-            value = "https://www.wrike.com/api/v4"
-          }
+        {
+          name  = "NEXTAUTH_URL",
+          value = local.nextauth_url
+        },
+        {
+          name  = "NEXTAUTH_SESSION_TOKEN",
+          value = "__Secure-next-auth.session-token"
+        },
+        {
+          name  = "NEXT_PUBLIC_API",
+          value = "https://www.wrike.com/api/v4"
+        },
+        {
+          name  = "DB_PORT",
+          value = "5432"
+        },
       ]
       secrets = [
         {
-            name = "DB_USER",
-            valueFrom = "${var.db_secret_arn}:username::"
+          name      = "DB_USER",
+          valueFrom = "${var.db_secret_arn}:username::"
         },
         {
-            name = "DB_PASSWORD",
-            valueFrom = "${var.db_secret_arn}:password::"
+          name      = "DB_PASSWORD",
+          valueFrom = "${var.db_secret_arn}:password::"
         },
         {
-            name = "DB_HOST",
-            valueFrom = local.rds_host
+          name      = "DB_HOST",
+          valueFrom = local.rds_host
         },
         {
-            name = "DB_NAME",
-            valueFrom = local.rds_name
+          name      = "DB_NAME",
+          valueFrom = local.rds_name
         },
         {
           name      = "WRIKE_WEBHOOK_SECRET",
           valueFrom = local.wrike_x_hook_secret_arn
         },
         {
-            name = "WRIKE_CLIENT_ID",
-            valueFrom = local.wrike_client_id_arn
+          name      = "WRIKE_CLIENT_ID",
+          valueFrom = local.wrike_client_id_arn
         },
         {
-            name = "WRIKE_CLIENT_SECRET",
-            valueFrom = local.wrike_client_secret_arn
+          name      = "WRIKE_CLIENT_SECRET",
+          valueFrom = local.wrike_client_secret_arn
         },
         {
-            name = "NEXTAUTH_SECRET",
-            valueFrom = local.nextauth_secret_arn
+          name      = "NEXTAUTH_SECRET",
+          valueFrom = local.nextauth_secret_arn
         }
       ]
 
@@ -88,8 +92,8 @@ resource "aws_ecs_service" "main" {
   name            = local.service_name
   cluster         = aws_ecs_cluster.tmca_analytics_platform.arn
   task_definition = aws_ecs_task_definition.main.arn
-  depends_on      = [aws_lb_target_group.main]
-  launch_type     = "FARGATE"
+  # depends_on      = [aws_lb_target_group.main]
+  launch_type = "FARGATE"
 
   desired_count                      = 1
   deployment_minimum_healthy_percent = 100

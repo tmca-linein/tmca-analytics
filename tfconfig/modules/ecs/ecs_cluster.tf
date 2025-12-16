@@ -8,7 +8,7 @@ resource "aws_ecs_cluster" "tmca_analytics_platform" {
 }
 
 resource "aws_ecs_cluster_capacity_providers" "fargate" {
-  cluster_name = aws_ecs_cluster.tmca_platform.name
+  cluster_name = aws_ecs_cluster.tmca_analytics_platform.name
 
   capacity_providers = ["FARGATE"]
 
