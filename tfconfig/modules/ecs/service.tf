@@ -41,7 +41,7 @@ resource "aws_ecs_task_definition" "main" {
         {
           name  = "DB_PORT",
           value = "5432"
-        },
+        }
       ]
       secrets = [
         {
@@ -73,8 +73,12 @@ resource "aws_ecs_task_definition" "main" {
           valueFrom = local.wrike_client_secret_arn
         },
         {
-          name      = "NEXTAUTH_SECRET",
-          valueFrom = local.nextauth_secret_arn
+          name      = "FIELD_NEXT_ATTENTION_NEEDED",
+          valueFrom = local.field_next_attention_needed
+        },
+        {
+          name      = "FIELD_DATE_THAT_MUST_BE_FINISHED",
+          valueFrom = local.field_date_that_must_be_finished
         }
       ]
 

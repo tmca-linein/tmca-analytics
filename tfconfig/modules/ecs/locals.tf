@@ -17,6 +17,8 @@ locals {
   wrike_client_secret_arn = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/wrike-client-secret"
   nextauth_secret_arn     = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/nextauth-secret"
   nextauth_url            = "https://${var.subdomain}.${var.hosted_zone}"
+  field_next_attention_needed = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/next-attention-needed"
+  field_date_that_must_be_finished = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/date-that-must-be-finished"
 
   log_group_name = "/ecs/${var.name}"
   service_name   = "${var.name}-service"

@@ -31,7 +31,7 @@ async function refreshWrikeAccessToken(token: JWT): Promise<JWT> {
             refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
         };
     } catch (error) {
-        console.error("Error refreshing Wrike access token:", error);
+        console.log("Error refreshing Wrike access token:", error);
         return {
             ...token,
             error: "RefreshAccessTokenError",
@@ -53,7 +53,7 @@ export const mainAuthConfig: NextAuthOptions = {
             },
             token: {
                 async request(context) {
-                    const redirectUri = "http://localhost:3000/api/auth/callback/wrike";
+                    const redirectUri = "https://wrike.tmcarobotics.com/api/auth/callback/wrike";
 
                     const params = new URLSearchParams({
                         grant_type: "authorization_code",
@@ -129,9 +129,14 @@ export const mainAuthConfig: NextAuthOptions = {
         },
 
         async session({ session, token }) {
+            if (token.error) {
+                session.error = token.error
+            }
+
             if (token.wrikeUserId) {
                 session.user.id = token.wrikeUserId as string;
             }
+
             return session;
         },
     }

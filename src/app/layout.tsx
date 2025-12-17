@@ -35,7 +35,7 @@ export default async function RootLayout({
 
   const session = await getServerSession(authConfig);
 
-  const isAuthenticated = !!session;
+  const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
 
   // If not logged in → show ONLY children (login page)
   if (!isAuthenticated) {
@@ -47,6 +47,7 @@ export default async function RootLayout({
       </html>
     );
   }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body

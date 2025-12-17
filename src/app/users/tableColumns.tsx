@@ -27,23 +27,11 @@ export const getColumns = (): ColumnDef<User>[] => [
     header: "ANF-ADDED Today",
   },
   {
-    accessorKey: "anfAddedThisWeek",
-    header: "ANF-ADDED Week",
-  },
-  {
-    accessorKey: "anfAddedThisMonth",
-    header: "ANF-ADDED Month",
-  },
-  {
     accessorKey: "anfRemovedToday",
     header: "ANF-REMOVED Today",
   },
   {
-    accessorKey: "anfRemovedThisWeek",
-    header: "ANF-REMOVED Week",
-  },
-  {
-    accessorKey: "anfRemovedThisMonth",
-    header: "ANF-REMOVED Month",
+    accessorKey: "commentsAddedToday",
+    header: "Comments ADDED Today",
   }
 ];

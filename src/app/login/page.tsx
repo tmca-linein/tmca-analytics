@@ -4,6 +4,7 @@ import {
     WrikeSignInButton
 } from "@/components/auth/authButton";
 import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 
 export default function LoginPage() {
     const { data: session } = useSession()
@@ -12,23 +13,13 @@ export default function LoginPage() {
             <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
                 {/* Header - TMV Capital Style */}
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                    <div className="bg-green-900 rounded-t-lg px-8 py-5 flex items-center justify-between shadow-lg">
+                    <div className="bg-sidebar rounded-t-lg px-8 py-5 flex items-center justify-between shadow-lg">
                         <div className="flex items-center space-x-4">
-                            <div className="bg-white rounded-lg p-3">
-                                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M4 16L12 8L28 24L20 24L4 16Z" fill="#004d40" />
-                                    <path d="M12 8L20 16L28 16L12 8Z" fill="white" />
-                                </svg>
-                            </div>
+                            <Image src="/tmca_small.png" alt="logo" width={40} height={35}/>
                             <div>
                                 <h1 className="text-2xl font-bold text-white">TMV Capital</h1>
-                                <p className="text-sm text-amber-100">Business Catalyst</p>
+                                <p className="text-sm text-secondary">Business Catalyst</p>
                             </div>
-                        </div>
-                        <div className="bg-white bg-opacity-20 rounded p-2">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                            </svg>
                         </div>
                     </div>
 

@@ -5,6 +5,7 @@ import { axiosRequest } from '@/lib/axios';
 import { ApiWrikeUserGroup, WrikeApiContactsResponse, WrikeApiUserGroupResponse, WrikeLegacyIdConversionResponse } from '@/types/user';
 import { getServerSession } from 'next-auth';
 import { authConfig } from '@/lib/auth';
+import { getUserIdMapping } from "@/cache/legacyId-cache";
 import pLimit from 'p-limit';
 const limit = pLimit(10);
 
@@ -46,9 +47,11 @@ const getSubOrdinates = async (userId: string) => {
   const leafMemberGroups = getRecursiveSubOrdinates(userGroups, companyParentGroup)
   const response = await axiosRequest<WrikeApiContactsResponse>("GET", '/contacts?types=["Group"]');
   const groupsWithMembers = response.data.data;
-  const memberIds = groupsWithMembers.filter(g => leafMemberGroups.includes(g.id))
+  const memberIds = [...new Set(
+    groupsWithMembers.filter(g => leafMemberGroups.includes(g.id))
     .map(leaf => !!leaf.memberIds ? leaf.memberIds : [])
-    .reduce((prev, cur) => [...prev, ...cur], []);
+    .reduce((prev, cur) => [...prev, ...cur], [])
+  )];
   if (memberIds.length === 0) return [];
   const userResponses = await Promise.all(
     memberIds.map(memId => limit(async () => {
@@ -73,127 +76,57 @@ const fetchWrikeUsers = async () => {
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
   const monthEnd = endOfMonth(now);
 
-  const [addedTodayCounts, addedWeekCounts, addedMonthCounts] = await Promise.all([
-    // Today
-    prisma.aNFEvent.groupBy({
-      by: ['assignedUserId'],
-      where: {
-        state: 'ADDED',
-        eventDate: {
-          gte: todayStart,
-          lte: todayEnd,
-        },
+  const addedTodayCounts = await prisma.aNFEvent.groupBy({
+    by: ['assignedUserId'],
+    where: {
+      state: 'ADDED',
+      eventDate: {
+        gte: todayStart,
+        lte: todayEnd,
       },
-      _count: {
-        id: true,
-      },
-    }),
-
-    // This week
-    prisma.aNFEvent.groupBy({
-      by: ['assignedUserId'],
-      where: {
-        state: 'ADDED',
-        eventDate: {
-          gte: weekStart,
-          lte: weekEnd,
-        },
-      },
-      _count: {
-        id: true,
-      },
-    }),
-
-    // This month
-    prisma.aNFEvent.groupBy({
-      by: ['assignedUserId'],
-      where: {
-        state: 'ADDED',
-        eventDate: {
-          gte: monthStart,
-          lte: monthEnd,
-        },
-      },
-      _count: {
-        id: true,
-      },
-    }),
-  ]);
-
-  const uniqueLegacyUsers = await prisma.aNFEvent.findMany({
-    distinct: ["assignedUserId"],
-    select: { assignedUserId: true },
+    },
+    _count: {
+      id: true,
+    },
   });
-  const uniqueAssignedUserIds = uniqueLegacyUsers.map(u => u.assignedUserId);
-  const userIdsMappingResponse = await axiosRequest<WrikeLegacyIdConversionResponse>("GET", `/ids?type=ApiV2User&ids=[${uniqueAssignedUserIds.join(',')}]`);
-  const userIdsMapping = userIdsMappingResponse?.data.data ?? [];
 
-  const [removedTodayCounts, removedWeekCounts, removedMonthCounts] = await Promise.all([
-    // Today
-    prisma.aNFEvent.groupBy({
-      by: ['assignedUserId'],
-      where: {
-        state: 'REMOVED',
-        eventDate: {
-          gte: todayStart,
-          lte: todayEnd,
-        },
+  const removedTodayCounts = await prisma.aNFEvent.groupBy({
+    by: ['assignedUserId'],
+    where: {
+      state: 'REMOVED',
+      eventDate: {
+        gte: todayStart,
+        lte: todayEnd,
       },
-      _count: {
-        id: true,
-      },
-    }),
+    },
+    _count: {
+      id: true,
+    },
+  });
 
-    // This week
-    prisma.aNFEvent.groupBy({
-      by: ['assignedUserId'],
-      where: {
-        state: 'REMOVED',
-        eventDate: {
-          gte: weekStart,
-          lte: weekEnd,
-        },
+  const addedCommentsTodayCounts = await prisma.commentEvent.groupBy({
+    by: ['userId'],
+    where: {
+      eventDate: {
+        gte: todayStart,
+        lte: todayEnd,
       },
-      _count: {
-        id: true,
-      },
-    }),
+    },
+    _count: {
+      id: true,
+    },
+  });
 
-    // This month
-    prisma.aNFEvent.groupBy({
-      by: ['assignedUserId'],
-      where: {
-        state: 'REMOVED',
-        eventDate: {
-          gte: monthStart,
-          lte: monthEnd,
-        },
-      },
-      _count: {
-        id: true,
-      },
-    }),
-  ]);
+
+  const userIdsMapping = await getUserIdMapping();
 
   // Transform into maps: userId → count
   const addedTodayMap = Object.fromEntries(
     addedTodayCounts.map(c => [c.assignedUserId, c._count.id])
   );
-  const addedWeekMap = Object.fromEntries(
-    addedWeekCounts.map(c => [c.assignedUserId, c._count.id])
-  );
-  const addedMonthMap = Object.fromEntries(
-    addedMonthCounts.map(c => [c.assignedUserId, c._count.id])
-  );
 
   const removedTodayMap = Object.fromEntries(
     removedTodayCounts.map(c => [c.assignedUserId, c._count.id])
-  );
-  const removedWeekMap = Object.fromEntries(
-    removedWeekCounts.map(c => [c.assignedUserId, c._count.id])
-  );
-  const removedMonthMap = Object.fromEntries(
-    removedMonthCounts.map(c => [c.assignedUserId, c._count.id])
   );
 
   // Now fetch users and attach the counts
@@ -207,12 +140,9 @@ const fetchWrikeUsers = async () => {
         firstName: user.firstName,
         lastName: user.lastName,
         primaryEmail: user.primaryEmail,
-        anfAddedToday: !!userMapping ? addedTodayMap[userMapping.apiV2Id] : 0,
-        anfAddedThisWeek: !!userMapping ? addedWeekMap[userMapping.apiV2Id] : 0,
-        anfAddedThisMonth: !!userMapping ? addedMonthMap[userMapping.apiV2Id] : 0,
-        anfRemovedToday: !!userMapping ? removedTodayMap[userMapping.apiV2Id] : 0,
-        anfRemovedThisWeek: !!userMapping ? removedWeekMap[userMapping.apiV2Id] : 0,
-        anfRemovedThisMonth: !!userMapping ? removedMonthMap[userMapping.apiV2Id] : 0,
+        anfAddedToday: !!userMapping ? (addedTodayMap[userMapping.apiV2Id] ?? 0) : 0,
+        anfRemovedToday: !!userMapping ? (removedTodayMap[userMapping.apiV2Id] ?? 0) : 0,
+        commentsAddedToday: !!userMapping ? 0 :0 
       })
     });
     return result;

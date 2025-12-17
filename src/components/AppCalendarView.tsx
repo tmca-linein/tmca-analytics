@@ -13,7 +13,7 @@ type AttentionItem = {
     title: string;
     description?: string;
     date: Date;
-    status: "overdue" | "today" | "upcoming";
+    status: "overdue" | "today" | "upcoming" | "completed";
     time?: string;
 };
 
@@ -104,8 +104,8 @@ export function AppCalendarView<TData extends AttentionItem>(
                             ) : (
                                 <div className="space-y-3">
                                     {itemsForDay.map((item) => (
+                                        <a key={item.id} href={item.link}>
                                         <div
-                                            key={item.id}
                                             className="rounded-2xl bg-background px-3 py-2.5 text-sm shadow-sm"
                                         >
                                             <div className="mb-1 flex items-center justify-between gap-2">
@@ -119,6 +119,9 @@ export function AppCalendarView<TData extends AttentionItem>(
                                                     {item.status === "upcoming" && (
                                                         <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                                                     )}
+                                                    {item.status === "completed" && (
+                                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                                    )}
                                                     <p className="font-medium">{item.title}</p>
                                                 </div>
                                                 <Badge
@@ -130,19 +133,21 @@ export function AppCalendarView<TData extends AttentionItem>(
                                                     {item.status === "upcoming" && "Upcoming"}
                                                 </Badge>
                                             </div>
+                                            <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                                {item.time && (
+                                                    <p className="mb-1.5 text-xs text-muted-foreground">
+                                                        {item.time}
+                                                    </p>
+                                                )}
 
-                                            {item.time && (
-                                                <p className="mb-1.5 text-xs text-muted-foreground">
-                                                    {item.time}
-                                                </p>
-                                            )}
-
-                                            {item.description && (
-                                                <p className="text-xs text-muted-foreground">
-                                                    {item.description}
-                                                </p>
-                                            )}
+                                                {item.description && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {item.description}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
+                                        </a>
                                     ))}
                                 </div>
                             )}

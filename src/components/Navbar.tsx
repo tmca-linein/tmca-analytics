@@ -26,7 +26,7 @@ const Navbar = () => {
       <SidebarTrigger />
       {/* Right */}
       <div className="flex items-center gap-4">
-        <Link href="/">Dashboard</Link>
+        {/* <Link href="/">Dashboard</Link> */}
         {/* Theme menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

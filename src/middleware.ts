@@ -6,11 +6,17 @@ export default withAuth(
     const { token } = req.nextauth;
     const { pathname } = req.nextUrl;
 
-    if (token && pathname === "/login") {
+    const isLoginPage = pathname === "/login";
+    const hasError = token?.error === "RefreshAccessTokenError";
+    const isAuthenticated = !!token && !hasError;
+
+    // Authenticated users should not stay on /login
+    if (isAuthenticated && isLoginPage) {
       return NextResponse.redirect(new URL("/space", req.url));
     }
 
-    if (!token && pathname !== "/login") {
+    // Unauthenticated or error → must go to /login (but allow staying on /login)
+    if (!isAuthenticated && !isLoginPage) {
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);

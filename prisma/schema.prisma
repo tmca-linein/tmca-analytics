@@ -20,13 +20,17 @@ model ANFEvent {
   wrikeItemId    String
   state          String
   eventDate      DateTime
+  authorUserId   String
 
-  @@index([assignedUserId, state, eventDate])
+  @@index([authorUserId, assignedUserId, state, eventDate])
 }
 
 model CommentEvent {
   id          String   @id @default(uuid())
-  userId      String
   wrikeItemId String
+  userId String
+  wordCount   Int
   eventDate   DateTime
+
+  @@index([userId, eventDate])
 }
