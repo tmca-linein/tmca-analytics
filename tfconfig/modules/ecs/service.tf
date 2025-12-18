@@ -73,6 +73,10 @@ resource "aws_ecs_task_definition" "main" {
           valueFrom = local.wrike_client_secret_arn
         },
         {
+          name      = "NEXTAUTH_SECRET",
+          valueFrom = local.nextauth_secret_arn
+        },
+        {
           name      = "FIELD_NEXT_ATTENTION_NEEDED",
           valueFrom = local.field_next_attention_needed
         },

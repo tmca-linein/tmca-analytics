@@ -13,7 +13,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { useEffect, useRef } from "react";
 
-interface DataTableProps<TData extends { subRows?: TData[] }, TValue> {
+interface DataTableProps<TData extends { id?: string, subRows?: TData[] }, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   meta?: {
@@ -24,7 +24,7 @@ interface DataTableProps<TData extends { subRows?: TData[] }, TValue> {
   }
 }
 
-export function DataTable<TData extends { subRows?: TData[] }, TValue>({
+export function DataTable<TData extends { id?: string, subRows?: TData[] }, TValue>({
   columns,
   data,
   meta
@@ -118,7 +118,6 @@ export function DataTable<TData extends { subRows?: TData[] }, TValue>({
           <div role="rowgroup" className="">
             {table.getRowModel().rows.map((row) => {
               const { getRowClassName, onRowClicked } = table.options.meta ?? {};
-              const isClickable = !!onRowClicked;
               return (
                 <div
                   role="row"
@@ -131,7 +130,7 @@ export function DataTable<TData extends { subRows?: TData[] }, TValue>({
                     gridTemplateColumns,
                     top: `${offset}px`
                   }}
-                  onClick={() => onRowClicked?.((row.original as any).id)}
+                  onClick={() => onRowClicked?.(row.original.id ?? '')}
                 >
                   {row.getVisibleCells().map((cell, index) => {
                     return (

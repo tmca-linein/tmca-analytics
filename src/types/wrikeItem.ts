@@ -77,6 +77,7 @@ export type WrikeTask = {
     customStatusId: string;
     permalink: string;
     priority: string;
+    customFields?: { id: string, value: string }[];
 }
 
 export type WrikeFolderTreeProject = {

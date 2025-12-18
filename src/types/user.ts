@@ -5,10 +5,7 @@ export type User = {
     primaryEmail?: string;
     anfAddedToday: number;
     anfRemovedToday: number;
-    anfAddedThisWeek: number;
-    anfRemovedThisWeek: number;
-    anfAddedThisMonth: number;
-    anfRemovedThisMonth: number;
+    commentsAddedToday: number;
     subRows?: User[];
 };
 

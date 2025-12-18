@@ -20,7 +20,7 @@ export type CustomFieldChangedPayload = {
 
 export type WrikeCommentWebhookPayload = {
     commentId: string;
-    comment?: WrikeComment;
+    comment: WrikeComment;
     taskId?: string;
     folderId?: string;
 } & BasicWebhookPayload;

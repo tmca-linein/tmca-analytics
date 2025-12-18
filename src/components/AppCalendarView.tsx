@@ -1,20 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { addDays, isSameDay, startOfDay } from "date-fns";
+import { isSameDay, startOfDay } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 
-type AttentionItem = {
-    id: string;
+export type AttentionItem = {
+    id: number;
     title: string;
     description?: string;
-    date: Date;
+    date: string;
     status: "overdue" | "today" | "upcoming" | "completed";
     time?: string;
+    link: string;
 };
 
 
@@ -105,48 +106,48 @@ export function AppCalendarView<TData extends AttentionItem>(
                                 <div className="space-y-3">
                                     {itemsForDay.map((item) => (
                                         <a key={item.id} href={item.link}>
-                                        <div
-                                            className="rounded-2xl bg-background px-3 py-2.5 text-sm shadow-sm"
-                                        >
-                                            <div className="mb-1 flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    {item.status === "overdue" && (
-                                                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                                                    )}
-                                                    {item.status === "today" && (
-                                                        <Clock className="h-4 w-4 text-amber-500" />
-                                                    )}
-                                                    {item.status === "upcoming" && (
-                                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                                                    )}
-                                                    {item.status === "completed" && (
-                                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                                                    )}
-                                                    <p className="font-medium">{item.title}</p>
+                                            <div
+                                                className="rounded-2xl bg-background px-3 py-2.5 text-sm shadow-sm"
+                                            >
+                                                <div className="mb-1 flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {item.status === "overdue" && (
+                                                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                                                        )}
+                                                        {item.status === "today" && (
+                                                            <Clock className="h-4 w-4 text-amber-500" />
+                                                        )}
+                                                        {item.status === "upcoming" && (
+                                                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                                        )}
+                                                        {item.status === "completed" && (
+                                                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                                        )}
+                                                        <p className="font-medium">{item.title}</p>
+                                                    </div>
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-[10px] px-2 py-0.5 rounded-full"
+                                                    >
+                                                        {item.status === "overdue" && "Overdue"}
+                                                        {item.status === "today" && "Today"}
+                                                        {item.status === "upcoming" && "Upcoming"}
+                                                    </Badge>
                                                 </div>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="text-[10px] px-2 py-0.5 rounded-full"
-                                                >
-                                                    {item.status === "overdue" && "Overdue"}
-                                                    {item.status === "today" && "Today"}
-                                                    {item.status === "upcoming" && "Upcoming"}
-                                                </Badge>
-                                            </div>
-                                            <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                                                {item.time && (
-                                                    <p className="mb-1.5 text-xs text-muted-foreground">
-                                                        {item.time}
-                                                    </p>
-                                                )}
+                                                <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                                                    {item.time && (
+                                                        <p className="mb-1.5 text-xs text-muted-foreground">
+                                                            {item.time}
+                                                        </p>
+                                                    )}
 
-                                                {item.description && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {item.description}
-                                                    </p>
-                                                )}
+                                                    {item.description && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {item.description}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
                                         </a>
                                     ))}
                                 </div>

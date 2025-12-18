@@ -1,10 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Download, Pin, Pencil } from "lucide-react";
+import { Pin, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
-type ActivityItem = {
+export type ActivityItem = {
     id: string;
     title: string;
     date: string;
@@ -19,7 +18,7 @@ type AppUserActivityWindowProps = {
 }
 
 export function AppUserActivityWindow(
-    props: AppCalendarViewProps,
+    props: AppUserActivityWindowProps,
 ) {
     return (
         <Card className="mt-4 w-full rounded-3xl border bg-background">
@@ -31,15 +30,15 @@ export function AppUserActivityWindow(
             </CardHeader>
 
             <CardContent className="space-y-6">
-                {props.items.map((item, index) => (
+                {props.items.length > 0 ? props.items.map((item, index) => (
                     <div key={item.id} className="flex gap-4">
 
                         {/* Timeline column */}
-                        
+
                         <div className="flex flex-col items-center">
-                            
+
                             <div className="flex h-8 w-8 items-center justify-center rounded-full border bg-card shadow-sm">
-                                {item.type === "ANF"? <Pin className="h-4 w-4"/> : <Pencil className="h-4 w-4"/>}
+                                {item.type === "ANF" ? <Pin className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                             </div>
 
                             {/* Connecting vertical line */}
@@ -47,7 +46,7 @@ export function AppUserActivityWindow(
                                 <div className="mt-1 h-full w-px bg-sidebar/50 dark:bg-primary" />
                             )}
                         </div>
-                        
+
 
                         {/* Content column */}
                         <div className="flex-1 pb-6">
@@ -68,7 +67,7 @@ export function AppUserActivityWindow(
                             </p>
                         </div>
                     </div>
-                ))}
+                )) : <span className="mt-1 text-xs text-muted-foreground">No activity yet.</span>}
             </CardContent>
         </Card>
     );

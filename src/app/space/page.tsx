@@ -1,4 +1,4 @@
-import { SpaceItem, WrikeApiFolderResponse, WrikeApiSpaceResponse, WrikeApiTasksResponse, WrikeSpace, WrikeTask } from "@/types/wrikeItem";
+import { SpaceItem, WrikeApiFolderResponse, WrikeApiTasksResponse, WrikeSpace, WrikeTask } from "@/types/wrikeItem";
 import { SpaceItemsTable } from "./SpaceItemsTable";
 import { axiosRequest } from "@/lib/axios";
 import { getUserName } from "@/cache/user-cache";
@@ -108,7 +108,7 @@ async function fetchSpacesWithMetadata(): Promise<SpaceWithMetadata[]> {
 
     return spaces.map((space, i) => {
         const folder = folderResponses[i]?.data?.data?.[0];
-        if (!folder) return { ...space, permalink: "", sharedIds: [], childIds: []};
+        if (!folder) return { ...space, permalink: "", sharedIds: [], childIds: [] };
         return {
             ...space,
             permalink: folder.permalink,
@@ -127,20 +127,21 @@ const fetchSpaceItems = async (): Promise<SpaceItem[]> => {
 
     const spaceItems: SpaceItem[] = await Promise.all(spaces.map(async s => {
         return ({
-        itemId: s.id,
-        itemName: s.title,
-        itemType: "Space",
-        author: "",
-        folderChildIds: s.childIds || [],
-        taskChildIds: taskItems.filter(t => t.parentId === s.id).map(t => t.itemId),
-        subRows: [],
-        warning: "",
-        sharedWith: (await Promise.all(
-            s.sharedIds.map(getUserName)
-        )).filter(Boolean)
-            .join(", "),
-        permalink: s.permalink,
-    })}));
+            itemId: s.id,
+            itemName: s.title,
+            itemType: "Space",
+            author: "",
+            folderChildIds: s.childIds || [],
+            taskChildIds: taskItems.filter(t => t.parentId === s.id).map(t => t.itemId),
+            subRows: [],
+            warning: "",
+            sharedWith: (await Promise.all(
+                s.sharedIds.map(getUserName)
+            )).filter(Boolean)
+                .join(", "),
+            permalink: s.permalink,
+        })
+    }));
 
     return [...spaceItems, ...childItems, ...taskItems];
 };

@@ -49,8 +49,8 @@ const getSubOrdinates = async (userId: string) => {
   const groupsWithMembers = response.data.data;
   const memberIds = [...new Set(
     groupsWithMembers.filter(g => leafMemberGroups.includes(g.id))
-    .map(leaf => !!leaf.memberIds ? leaf.memberIds : [])
-    .reduce((prev, cur) => [...prev, ...cur], [])
+      .map(leaf => !!leaf.memberIds ? leaf.memberIds : [])
+      .reduce((prev, cur) => [...prev, ...cur], [])
   )];
   if (memberIds.length === 0) return [];
   const userResponses = await Promise.all(
@@ -68,41 +68,54 @@ const getSubOrdinates = async (userId: string) => {
 
 const fetchWrikeUsers = async () => {
   const now = new Date();
-
   const todayStart = startOfDay(now);
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const monthStart = startOfMonth(now);
   const todayEnd = endOfDay(now);
-  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const monthEnd = endOfMonth(now);
+  const addedTodayCounts = await prisma.$queryRaw<
+    { assignedUserId: string; count: number }[]>`
+      SELECT
+        "assignedUserId",
+        COUNT(*)::int AS count
+      FROM "ANFEvent"
+      WHERE
+        state = 'ADDED'
+        AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd}
+        AND "assignedUserId" <> "authorUserId"
+      GROUP BY "assignedUserId"
+    `;
+  const removedTodayCounts = await prisma.$queryRaw<
+    { assignedUserId: string; count: number }[]>`
+      SELECT
+        "assignedUserId",
+        COUNT(*)::int AS count
+      FROM "ANFEvent"
+      WHERE
+        state = 'REMOVED'
+        AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd}
+        AND EXISTS (
+                SELECT 1
+                FROM "CommentEvent" ce
+                WHERE ce."wrikeItemId" = "ANFEvent"."wrikeItemId"
+                AND ce."userId" = "ANFEvent"."authorUserId"
+                AND ce."eventDate" BETWEEN
+                    "ANFEvent"."eventDate" - INTERVAL '10 minutes'
+                    AND "ANFEvent"."eventDate" + INTERVAL '10 minutes'
+            )
+      GROUP BY "assignedUserId"
+    `;
 
-  const addedTodayCounts = await prisma.aNFEvent.groupBy({
-    by: ['assignedUserId'],
-    where: {
-      state: 'ADDED',
-      eventDate: {
-        gte: todayStart,
-        lte: todayEnd,
-      },
-    },
-    _count: {
-      id: true,
-    },
-  });
-
-  const removedTodayCounts = await prisma.aNFEvent.groupBy({
-    by: ['assignedUserId'],
-    where: {
-      state: 'REMOVED',
-      eventDate: {
-        gte: todayStart,
-        lte: todayEnd,
-      },
-    },
-    _count: {
-      id: true,
-    },
-  });
+  // const removedTodayCounts = await prisma.aNFEvent.groupBy({
+  //   by: ['assignedUserId'],
+  //   where: {
+  //     state: 'REMOVED',
+  //     eventDate: {
+  //       gte: todayStart,
+  //       lte: todayEnd,
+  //     },
+  //   },
+  //   _count: {
+  //     id: true,
+  //   },
+  // });
 
   const addedCommentsTodayCounts = await prisma.commentEvent.groupBy({
     by: ['userId'],
@@ -122,12 +135,16 @@ const fetchWrikeUsers = async () => {
 
   // Transform into maps: userId → count
   const addedTodayMap = Object.fromEntries(
-    addedTodayCounts.map(c => [c.assignedUserId, c._count.id])
+    addedTodayCounts.map(c => [c.assignedUserId, c.count])
   );
 
   const removedTodayMap = Object.fromEntries(
-    removedTodayCounts.map(c => [c.assignedUserId, c._count.id])
+    removedTodayCounts.map(c => [c.assignedUserId, c.count])
   );
+
+  const addedCommentsTodayMap = Object.fromEntries(
+    addedCommentsTodayCounts.map(c => [c.userId, c._count.id])
+  )
 
   // Now fetch users and attach the counts
   const session = await getServerSession(authConfig);
@@ -142,7 +159,7 @@ const fetchWrikeUsers = async () => {
         primaryEmail: user.primaryEmail,
         anfAddedToday: !!userMapping ? (addedTodayMap[userMapping.apiV2Id] ?? 0) : 0,
         anfRemovedToday: !!userMapping ? (removedTodayMap[userMapping.apiV2Id] ?? 0) : 0,
-        commentsAddedToday: !!userMapping ? 0 :0 
+        commentsAddedToday: !!userMapping ? (addedCommentsTodayMap[userMapping.apiV2Id] ?? 0) : 0
       })
     });
     return result;

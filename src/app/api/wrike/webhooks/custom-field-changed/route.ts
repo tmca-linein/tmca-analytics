@@ -30,9 +30,10 @@ export async function POST(request: Request) {
                     wrikeItemId: taskId ?? "",
                     state: "ADDED",
                     eventDate,
+                    authorUserId: event.eventAuthorId
                 },
             });
-            console.log(`ADDED: Task ${taskId} → ${userId}`);
+            console.log(`${eventDate}: CUSTOM-FIELD-CHANGED: {State: ADDED, Task: ${taskId}, RemovedUser: ${userId}, Author: ${event.eventAuthorId}}`);
         }
 
         // === Users that were REMOVED ===
@@ -44,9 +45,10 @@ export async function POST(request: Request) {
                     wrikeItemId: taskId ?? "",
                     state: "REMOVED",
                     eventDate,
+                    authorUserId: event.eventAuthorId
                 },
             });
-            console.log(`REMOVED: Task ${taskId} → ${userId}`);
+            console.log(`${eventDate}: CUSTOM-FIELD-CHANGED: {State: REMOVED, Task: ${taskId}, RemovedUser: ${userId}, Author: ${event.eventAuthorId}}`);
         }
     }
 

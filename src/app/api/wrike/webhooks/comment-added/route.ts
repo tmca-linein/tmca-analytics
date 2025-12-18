@@ -4,11 +4,12 @@ import type { WrikeCommentWebhookPayload } from "../types";
 
 export async function POST(request: Request) {
     const body = await request.json() as WrikeCommentWebhookPayload[];
-    const wordCount = body.comment.text
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean).length;
+
     for (const event of body) {
+        const wordCount = event.comment.text
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean).length;
         const eventDate = new Date(event.lastUpdatedDate);
         await prisma.commentEvent.create({
             data: {
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
                 wordCount
             },
         });
+        console.log(`${eventDate}: COMMENT-ADDED: {User: ${event.eventAuthorId}, Task: ${event.taskId}, Length: ${wordCount}}`)
     }
 
     return NextResponse.json({ ok: true });
