@@ -30,8 +30,7 @@ async function refreshWrikeAccessToken(token: JWT): Promise<JWT> {
             accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
             refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
         };
-    } catch (error) {
-        console.log("Error refreshing Wrike access token:", error);
+    } catch {
         return {
             ...token,
             error: "RefreshAccessTokenError",

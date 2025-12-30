@@ -1,6 +1,5 @@
 "use client"
 import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useTheme } from "next-themes"
@@ -26,7 +25,6 @@ const Navbar = () => {
       <SidebarTrigger />
       {/* Right */}
       <div className="flex items-center gap-4">
-        {/* <Link href="/">Dashboard</Link> */}
         {/* Theme menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

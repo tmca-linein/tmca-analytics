@@ -27,6 +27,5 @@ export async function getUserIdMapping(): Promise<Mapping[]> {
 
   const uniqueIds = uniqueLegacyUsers.map(u => u.assignedUserId).sort();
   const key = JSON.stringify(uniqueIds); // cache key depends on current IDs
-
   return fetchMappingsCached(key);
 }

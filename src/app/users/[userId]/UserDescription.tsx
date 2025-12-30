@@ -1,16 +1,13 @@
-import { Badge, Link2, Mail, MapPin, Phone } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Mail, MapPin, Phone } from "lucide-react";
+import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { ApiWrikeUser } from "@/types/user";
 
-type AppUserDescriptionProps = {
-    user: ApiWrikeUser,
-}
 
-const AppUserDescription = (
-    props: AppUserDescriptionProps,
+const UserDescription = (
+    props: { user: ApiWrikeUser },
 ) => {
-    const {user} = props;
+    const { user } = props;
     return (
         <div className="h-full flex items-center justify-center">
             <Card className="h-full w-full rounded-3xl border shadow-sm">
@@ -49,4 +46,4 @@ const AppUserDescription = (
     )
 }
 
-export default AppUserDescription;
+export default UserDescription;

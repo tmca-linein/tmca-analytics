@@ -3,11 +3,9 @@
 import {
     WrikeSignInButton
 } from "@/components/auth/authButton";
-import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 
 export default function LoginPage() {
-    const { data: session } = useSession()
     return (
         <>
             <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -15,7 +13,7 @@ export default function LoginPage() {
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
                     <div className="bg-sidebar rounded-t-lg px-8 py-5 flex items-center justify-between shadow-lg">
                         <div className="flex items-center space-x-4">
-                            <Image src="/tmca_small.png" alt="logo" width={40} height={35}/>
+                            <Image src="/tmca_small.png" alt="logo" width={40} height={35} />
                             <div>
                                 <h1 className="text-2xl font-bold text-white">TMV Capital</h1>
                                 <p className="text-sm text-secondary">Business Catalyst</p>
@@ -34,7 +32,7 @@ export default function LoginPage() {
 
                         <div className="mt-12">
                             {/* Single Button - Full Match to Your Design */}
-                            <WrikeSignInButton/>
+                            <WrikeSignInButton />
 
                             <p className="mt-6 text-center text-xs text-gray-500">
                                 By continuing, you agree to TMV Capital&apos;s{' '}

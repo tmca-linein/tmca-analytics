@@ -6,7 +6,7 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = var.aws_region
 
-  tmca_analytics_release_version = "0.0.39"
+  tmca_analytics_release_version = "0.0.41"
   tmca_analytics_image           = "${local.account}.dkr.ecr.${local.region}.amazonaws.com/tmca_analytics:${local.tmca_analytics_release_version}"
 
   rds_host = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/rds/host"
@@ -19,6 +19,7 @@ locals {
   nextauth_url                     = "https://${var.subdomain}.${var.hosted_zone}"
   field_next_attention_needed      = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/next-attention-needed"
   field_date_that_must_be_finished = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/date-that-must-be-finished"
+  az_user                          = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/az-user"
 
   log_group_name = "/ecs/${var.name}"
   service_name   = "${var.name}-service"

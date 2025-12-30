@@ -18,8 +18,6 @@ export type AttentionItem = {
     link: string;
 };
 
-
-
 type AppCalendarViewProps<TData extends AttentionItem> = {
     title: string
     items: TData[],

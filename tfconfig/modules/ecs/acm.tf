@@ -32,3 +32,15 @@ resource "aws_route53_record" "wrike_alias_a" {
     evaluate_target_health = true
   }
 }
+
+resource "aws_route53_record" "www_wrike_alias_a" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "www.wrike.${data.aws_route53_zone.main.name}"
+  type    = "A"
+
+  alias {
+    name                   = var.alb_dns_name
+    zone_id                = var.alb_zone_id
+    evaluate_target_health = true
+  }
+}

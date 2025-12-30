@@ -1,6 +1,6 @@
 'use client'
 
-import { User, Satellite, Settings, Share2 } from "lucide-react";
+import { User, Satellite, BookOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -9,7 +9,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
@@ -18,17 +17,47 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar"
 
+const tools = [
+  {
+    title: "Wrike",
+    url: "https://www.wrike.com/",
+    icon: <Image src="/wrike.png" alt="" width={18} height={18} />,
+  },
+  {
+    title: "ChatGPT",
+    url: "https://chatgpt.com/",
+    icon: <Image src="/chatgpt.svg" alt="" width={18} height={18} />,
+  },
+
+  {
+    title: "Drone Harmony",
+    url: "https://tmca.droneharmony.com/",
+    icon: <Image src="/dh.png" alt="" width={18} height={18} />,
+  },
+
+  {
+    title: "Sympa",
+    url: "https://www.sympahr.net/",
+    icon: <Image src="/sympa.png" alt="" width={18} height={18} />,
+  }
+];
+
 const items = [
   {
-    title: "Space overview",
+    title: "Wrike spaces",
     url: "/space",
     icon: Satellite,
   },
   {
-    title: "Space users",
+    title: "Wrike users",
     url: "/users",
     icon: User,
-  }
+  },
+  // {
+  //   title: "Documentation",
+  //   url: "/docs",
+  //   icon: BookOpen,
+  // }
 ];
 
 const AppSidebar = () => {
@@ -51,7 +80,7 @@ const AppSidebar = () => {
       <SidebarSeparator />
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel className="">Application</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -62,9 +91,23 @@ const AppSidebar = () => {
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.title === "Inbox" && (
-                    <SidebarMenuBadge>25</SidebarMenuBadge>
-                  )}
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {tools.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link href={item.url}>
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

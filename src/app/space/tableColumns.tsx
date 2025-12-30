@@ -7,33 +7,39 @@ import { ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight, Satellite, F
 
 export const getColumns = (): ColumnDef<SpaceItem>[] => [
   {
-    id: "all",
+    id: "itemName",
+    accessorKey: "itemName",
     header: ({ table }) => (
-      <>
-        <button
-          {...{
-            onClick: table.getToggleAllRowsExpandedHandler(),
-          }}
-        >
-          {table.getIsAllRowsExpanded() ? (<ChevronsDownUp className="translate-y-[2px] h-4 w-4" />) : <ChevronsUpDown className="translate-y-[2px] h-4 w-4" />}
+      <div className="flex items-center gap-2">
+        <button onClick={table.getToggleAllRowsExpandedHandler()}>
+          {table.getIsAllRowsExpanded() ? (
+            <ChevronsDownUp className="translate-y-[2px] h-4 w-4" />
+          ) : (
+            <ChevronsUpDown className="translate-y-[2px] h-4 w-4" />
+          )}
         </button>
-      </>
+        <span>Item Name</span>
+      </div>
     ),
     cell: ({ row, table }) => {
       const { onRowExpand, loadingRows } = table.options.meta ?? {};
       const isLoading = loadingRows?.[row.original.itemId];
 
       return (
-        <div style={{ paddingLeft: `${row.depth}rem` }}>
+        <div
+          className="flex items-center gap-2"
+          style={{ paddingLeft: `${row.depth}rem` }}
+        >
           {row.getCanExpand() ? (
             <button
-              onClick={() => {
+              className="p-1"
+              onClick={(e) => {
+                e.stopPropagation(); // prevents row click if you have one
                 row.toggleExpanded();
                 if (!row.getIsExpanded()) {
                   onRowExpand?.(row.original.itemId);
                 }
               }}
-              className="p-1"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -43,20 +49,23 @@ export const getColumns = (): ColumnDef<SpaceItem>[] => [
                 <ChevronRight className="translate-y-[2px] h-4 w-4" />
               )}
             </button>
-          ) : null}
+          ) : (
+            // keep alignment when there's no expander
+            <span className="inline-block w-6" />
+          )}
+
+          <span>{row.original.itemName}</span>
+          {/* or flexRender if you need custom rendering */}
         </div>
       );
     },
-    footer: props => props.column.id,
-  },
-  {
-    accessorKey: "itemName",
-    header: "Item Name",
+    size: 1000,
+    enableSorting: true,   // default is true
   },
   {
     accessorKey: "itemType",
     header: "Item Type",
-    cell: ({ row, getValue }) => {
+    cell: ({ getValue }) => {
       const type = getValue<string>();
       const Icon = type === "Space"
         ? Satellite
@@ -73,10 +82,7 @@ export const getColumns = (): ColumnDef<SpaceItem>[] => [
         </div>
       );
     },
-  },
-  {
-    accessorKey: "author",
-    header: "Author",
+    size: 100
   },
   {
     accessorKey: "sharedWith",
@@ -85,17 +91,24 @@ export const getColumns = (): ColumnDef<SpaceItem>[] => [
       const sharedWith = row.original.sharedWith;
       if (!sharedWith || sharedWith === '') return <span className="text-muted-foreground">—</span>;
 
-      return <span>{(sharedWith )}</span>;
+      return <span>{(sharedWith)}</span>;
     },
+    size: 500
   },
   {
     accessorKey: "permalink",
     header: "Link",
-    cell: ({ row, getValue }) => {
+    cell: ({ getValue }) => {
       const url = getValue<string>();
       return url ? (
         <a href={url}><Link className="w-4 h-4 text-gray-600" /></a>
       ) : <></>;
     },
+    size: 100
+  },
+  {
+    accessorKey: "author",
+    header: "Author",
+    size: 300
   }
 ];

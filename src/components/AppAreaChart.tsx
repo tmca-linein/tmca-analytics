@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
     Card,
     CardContent,
@@ -31,6 +31,17 @@ type SeriesDef<T> = {
     label: string
     color?: string
 }
+export type SelectFilterDef<TData> = {
+    id: string;
+    label: string;
+    options: Array<{ value: string; label: string }>;
+    defaultValue: string;
+    apply: (row: TData, selectedValue: string, allRows: TData[]) => boolean;
+    /** Optional: hide the filter entirely based on data */
+    hidden?: (allRows: TData[]) => boolean;
+    /** Optional: custom trigger className */
+    triggerClassName?: string;
+};
 
 type AppAreaChartProps<TData extends Record<string, string | number>> = {
     chartTitle: string
@@ -40,6 +51,7 @@ type AppAreaChartProps<TData extends Record<string, string | number>> = {
     series: SeriesDef<TData>[]
     heightClassName?: string
     xType?: "string" | "date";
+    filters?: SelectFilterDef<TData>[];
 }
 
 function AppAreaChart<TData extends Record<string, string | number>>(
@@ -53,6 +65,7 @@ function AppAreaChart<TData extends Record<string, string | number>>(
         series,
         heightClassName = "h-[300px]",
         xType,
+        filters = [],
     } = props
 
     const chartConfig: ChartConfig = React.useMemo(() => {
@@ -66,20 +79,49 @@ function AppAreaChart<TData extends Record<string, string | number>>(
         }
         return cfg
     }, [series])
-    const [timeRange, setTimeRange] = React.useState("90d")
-    const filteredData = chartData.filter((item) => {
-        const date = new Date(item.date)
-        const referenceDate = new Date()
-        let daysToSubtract = 90
-        if (timeRange === "30d") {
-            daysToSubtract = 30
-        } else if (timeRange === "7d") {
-            daysToSubtract = 7
-        }
-        const startDate = new Date(referenceDate)
-        startDate.setDate(startDate.getDate() - daysToSubtract)
-        return date >= startDate
-    })
+    // const [timeRange, setTimeRange] = React.useState("90d")
+    // const filteredData = chartData.filter((item) => {
+    //     const date = new Date(item.date)
+    //     const referenceDate = new Date()
+    //     let daysToSubtract = 90
+    //     if (timeRange === "30d") {
+    //         daysToSubtract = 30
+    //     } else if (timeRange === "7d") {
+    //         daysToSubtract = 7
+    //     }
+    //     const startDate = new Date(referenceDate)
+    //     startDate.setDate(startDate.getDate() - daysToSubtract)
+    //     return date >= startDate
+    // })
+
+    const initialFiltersState = React.useMemo(() => {
+        const state: Record<string, string> = {};
+        for (const f of filters) state[f.id] = f.defaultValue;
+        return state;
+    }, [filters]);
+
+    const [filterState, setFilterState] = React.useState<Record<string, string>>(
+        initialFiltersState,
+    );
+
+    React.useEffect(() => {
+        setFilterState(initialFiltersState);
+    }, [initialFiltersState]);
+
+    const visibleFilters = React.useMemo(
+        () => filters.filter((f) => !f.hidden?.(chartData)),
+        [filters, chartData],
+    );
+
+    const filteredData = React.useMemo(() => {
+        if (visibleFilters.length === 0) return chartData;
+
+        return chartData.filter((row) =>
+            visibleFilters.every((f) =>
+                f.apply(row, filterState[f.id] ?? f.defaultValue, chartData),
+            ),
+        );
+    }, [chartData, visibleFilters, filterState]);
 
     return (
         <div className="h-full">
@@ -91,25 +133,41 @@ function AppAreaChart<TData extends Record<string, string | number>>(
                             {chartDesc}
                         </CardDescription>
                     </div>
-                    <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger
-                            className="hidden w-[160px] rounded-lg sm:ml-auto sm:flex"
-                            aria-label="Select a value"
-                        >
-                            <SelectValue placeholder="Last 3 months" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                            <SelectItem value="90d" className="rounded-lg">
-                                Last 3 months
-                            </SelectItem>
-                            <SelectItem value="30d" className="rounded-lg">
-                                Last 30 days
-                            </SelectItem>
-                            <SelectItem value="7d" className="rounded-lg">
-                                Last 7 days
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex gap-2 sm:ml-auto">
+                        {visibleFilters.map((f) => (
+                            <div key={f.id} className="flex gap-2">
+                                <span className="inline-flex items-center text-sm text-muted-foreground">{f.label}</span>
+                                <Select
+                                    value={filterState[f.id] ?? f.defaultValue}
+                                    onValueChange={(val) => {
+                                        setFilterState((prev) => ({ ...prev, [f.id]: val }))
+                                    }
+                                    }
+                                >
+                                    <SelectTrigger
+                                        className={
+                                            f.triggerClassName ??
+                                            "hidden w-[180px] rounded-lg sm:flex"
+                                        }
+                                        aria-label={f.label}
+                                    >
+                                        <SelectValue placeholder={f.label} />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        {f.options.map((opt) => (
+                                            <SelectItem
+                                                key={opt.value}
+                                                value={opt.value}
+                                                className="rounded-lg"
+                                            >
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ))}
+                    </div>
                 </CardHeader>
                 <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                     <ChartContainer
@@ -117,32 +175,6 @@ function AppAreaChart<TData extends Record<string, string | number>>(
                         className={`${heightClassName} w-full`}
                     >
                         <AreaChart data={filteredData}>
-                            <defs>
-                                <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-                                    <stop
-                                        offset="5%"
-                                        stopColor="var(--color-desktop)"
-                                        stopOpacity={0.8}
-                                    />
-                                    <stop
-                                        offset="95%"
-                                        stopColor="var(--color-desktop)"
-                                        stopOpacity={0.1}
-                                    />
-                                </linearGradient>
-                                <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-                                    <stop
-                                        offset="5%"
-                                        stopColor="var(--color-mobile)"
-                                        stopOpacity={0.8}
-                                    />
-                                    <stop
-                                        offset="95%"
-                                        stopColor="var(--color-mobile)"
-                                        stopOpacity={0.1}
-                                    />
-                                </linearGradient>
-                            </defs>
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey={xKey as string}
@@ -157,6 +189,14 @@ function AppAreaChart<TData extends Record<string, string | number>>(
                                     }
                                     return String(value);
                                 }}
+                            />
+                            <YAxis
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={8}
+                                width={40}
+                                domain={["auto", "auto"]}   // default, but explicit
+                                padding={{ top: 36, bottom: 36 }}  // adds space above max
                             />
                             <ChartTooltip
                                 cursor={false}
@@ -175,20 +215,15 @@ function AppAreaChart<TData extends Record<string, string | number>>(
                             />
                             {series.map((s) => {
                                 const key = String(s.key)
-                                // Use CSS variable names from ChartContainer,
-                                // which sets --color-<key>
                                 const colorVar = `var(--color-${key})`
-
                                 return (
                                     <Area
                                         key={key}
                                         dataKey={key}
                                         type="monotone"
-                                        // solid fill; you can reintroduce gradients if you like
                                         fill={colorVar}
                                         fillOpacity={0.3}
                                         stroke={colorVar}
-                                    // stackId="a"
                                     />
                                 )
                             })}

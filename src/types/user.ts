@@ -4,9 +4,19 @@ export type User = {
     lastName: string;
     primaryEmail?: string;
     anfAddedToday: number;
+    anfAddedThisWeek: number;
+    anfAddedThisMonth: number;
     anfRemovedToday: number;
+    anfRemovedThisWeek: number;
+    anfRemovedThisMonth: number;
     commentsAddedToday: number;
+    commentsAddedThisWeek: number;
+    commentsAddedThisMonth: number;
+    avgCommentLengthToday: number;
+    avgCommentLengthThisWeek: number;
+    avgCommentLengthThisMonth: number;
     subRows?: User[];
+    warning?: string;
 };
 
 export interface WrikeApiUserGroupResponse {

@@ -1,6 +1,6 @@
-import AppUserDescription from '@/components/AppUserDescription';
+import UserDescription from '@/app/users/[userId]/UserDescription';
 import UserDataSkeleton from './_skeletons';
-import UserDataLoader from './userDataLoader';
+import UserDataLoader from './UserDataLoader';
 import { axiosRequest } from "@/lib/axios";
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
@@ -24,11 +24,12 @@ export default async function UserDetailsPage({
     if (!isAuthenticated) {
         redirect("/login");
     }
+
     const userDetails = await fetchUserInfo(userId);
     return (
         <>
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4">
-                <div className="bg-primary-foreground p-4 rounded-lg"><AppUserDescription user={userDetails} /></div>
+                <div className="bg-primary-foreground p-4 rounded-lg"><UserDescription user={userDetails} /></div>
                 <Suspense fallback={<div className="bg-primary-foreground p-4 rounded-lg"><UserDataSkeleton /></div>}>
                     <UserDataLoader userId={userId} />
                 </Suspense>

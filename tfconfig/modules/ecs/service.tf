@@ -83,6 +83,10 @@ resource "aws_ecs_task_definition" "main" {
         {
           name      = "FIELD_DATE_THAT_MUST_BE_FINISHED",
           valueFrom = local.field_date_that_must_be_finished
+        },
+        {
+          name      = "MAIN_UID",
+          valueFrom = local.az_user
         }
       ]
 

@@ -1,10 +1,14 @@
 import { SpaceItem, WrikeApiFolderResponse, WrikeApiTasksResponse, WrikeSpace, WrikeTask } from "@/types/wrikeItem";
 import { SpaceItemsTable } from "./SpaceItemsTable";
 import { axiosRequest } from "@/lib/axios";
-import { getUserName } from "@/cache/user-cache";
-import { getChildrenBatch } from "./cachedWrikeItemRetriever";
+import { cacheAncestorMappings, getAllParents, getUserName } from "@/cache/user-cache";
+import { getChildrenBatch, getFolderTaskIds } from "./serverSpaceHelpers";
 import pLimit from 'p-limit';
-const limit = pLimit(20);
+import { getServerSession } from "next-auth";
+import { authConfig } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { chunkArray } from "./spaceHelpers";
+const limit = pLimit(5);
 
 type SpaceWithMetadata = WrikeSpace & {
     permalink: string;
@@ -12,23 +16,9 @@ type SpaceWithMetadata = WrikeSpace & {
     childIds: string[];
 }
 
-function chunkArray<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-        chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
-}
-
 async function getAllSpaceChildren(spaces: SpaceWithMetadata[]): Promise<SpaceItem[]> {
     const allChildIds = spaces.flatMap(s => s.childIds);
     if (allChildIds.length === 0) return [];
-
-    // Batch fetch up to 100 folders at once (Wrike supports /folders/id1,id2,...)
-    const batches: string[][] = [];
-    for (let i = 0; i < allChildIds.length; i += 100) {
-        batches.push(allChildIds.slice(i, i + 100));
-    }
 
     const folderChunks = chunkArray(allChildIds, 100);
     const allFolderResponses = await Promise.all(
@@ -45,11 +35,12 @@ async function getAllSpaceChildren(spaces: SpaceWithMetadata[]): Promise<SpaceIt
             itemType: f.project ? "Project" : "Folder",
             author: f.project?.authorId ? await getUserName(f.project.authorId) || "" : "",
             folderChildIds: f.childIds || [],
-            taskChildIds: [],
+            taskChildIds: await getFolderTaskIds(f.id),
             subRows: [],
             warning: "",
+            sharedIds: f.sharedIds,
             sharedWith: (await Promise.all(
-                f.sharedIds.map(getUserName)
+                f.sharedIds.filter(sid => sid !== process.env.MAIN_UID).map(getUserName)
             )).filter(Boolean)
                 .join(", "),
             permalink: f.permalink,
@@ -59,7 +50,7 @@ async function getAllSpaceChildren(spaces: SpaceWithMetadata[]): Promise<SpaceIt
     return items;
 }
 
-async function getAllSpaceTasks(spaces: WrikeSpace[]): Promise<SpaceItem[]> {
+async function getAllSpaceTasks(spaces: SpaceWithMetadata[]): Promise<SpaceItem[]> {
     const allTasksWithParent = (
         await Promise.all(
             spaces.map(async (space) => {
@@ -71,28 +62,50 @@ async function getAllSpaceTasks(spaces: WrikeSpace[]): Promise<SpaceItem[]> {
 
                 return res.data.data.map((task: WrikeTask) => ({
                     task,
-                    parentId: space.id,
+                    parent: space,
                 }));
             })
         )
     ).flat();
 
     return Promise.all(
-        allTasksWithParent.map(async ({ task, parentId }) => ({
-            itemId: task.id,
-            itemName: task.title,
-            itemType: "Task" as const,
-            author: task.authorIds?.[0] ? await getUserName(task.authorIds[0]) || "" : "",
-            parentId,
-            folderChildIds: [],
-            taskChildIds: task.subTaskIds || [],
-            subRows: [],
-            warning: "",
-            sharedWith: task.sharedIds?.length
-                ? (await Promise.all(task.sharedIds.map(getUserName))).filter(Boolean).join(", ")
-                : "",
-            permalink: task.permalink,
-        }))
+        allTasksWithParent.map(async ({ task, parent }) => {
+            const parentSharedSet = new Set(parent.sharedIds);
+            // check if user or any of its parents are in the parent folder sharedIds.
+            const warnings: string[] = [];
+            for (const sid of task.sharedIds ?? []) {
+                if (parentSharedSet.has(sid)) continue;
+
+                const parents = getAllParents(sid) ?? [];
+                let covered = false;
+                for (const pid of parents) {
+                    if (parentSharedSet.has(pid)) { covered = true; break; }
+                }
+                if (!covered) {
+                    warnings.push(`User ${sid} was explictly shared on a task level but not on a folder level!`);
+                }
+            }
+
+            const warning = warnings.join("; ");
+            return ({
+                itemId: task.id,
+                itemName: task.title,
+                itemType: "Task" as const,
+                author: task.authorIds?.[0] ? await getUserName(task.authorIds[0]) || "" : "",
+                parentId: parent.id,
+                folderChildIds: [],
+                taskChildIds: task.subTaskIds || [],
+                subRows: [],
+                warning,
+                sharedIds: task.sharedIds,
+                sharedWith: task.sharedIds?.length
+                    ? (await Promise.all(task.sharedIds
+                        .filter(sid => sid !== process.env.MAIN_UID)
+                        .map(getUserName))).filter(Boolean).join(", ")
+                    : "",
+                permalink: task.permalink,
+            })
+        })
     );
 }
 
@@ -119,6 +132,7 @@ async function fetchSpacesWithMetadata(): Promise<SpaceWithMetadata[]> {
 }
 
 const fetchSpaceItems = async (): Promise<SpaceItem[]> => {
+    await cacheAncestorMappings();
     const spaces = await fetchSpacesWithMetadata();
     const [childItems, taskItems] = await Promise.all([
         getAllSpaceChildren(spaces),
@@ -135,8 +149,9 @@ const fetchSpaceItems = async (): Promise<SpaceItem[]> => {
             taskChildIds: taskItems.filter(t => t.parentId === s.id).map(t => t.itemId),
             subRows: [],
             warning: "",
+            sharedIds: s.sharedIds,
             sharedWith: (await Promise.all(
-                s.sharedIds.map(getUserName)
+                s.sharedIds.filter(sid => sid !== process.env.MAIN_UID).map(getUserName)
             )).filter(Boolean)
                 .join(", "),
             permalink: s.permalink,
@@ -147,6 +162,13 @@ const fetchSpaceItems = async (): Promise<SpaceItem[]> => {
 };
 
 const SpaceItemsPage = async () => {
+    const session = await getServerSession(authConfig);
+    const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
+
+    if (!isAuthenticated) {
+        redirect('/login');
+    }
+
     const data = await fetchSpaceItems();
     return (
         <>

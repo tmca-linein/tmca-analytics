@@ -1,7 +1,7 @@
 "use client";
 
 import { Pin, Pencil } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 
 export type ActivityItem = {
     id: string;
@@ -12,24 +12,19 @@ export type ActivityItem = {
     link: string;
 };
 
-
-type AppUserActivityWindowProps = {
-    items: ActivityItem[],
-}
-
-export function AppUserActivityWindow(
-    props: AppUserActivityWindowProps,
+export function UserActivityWindow(
+    props: { items: ActivityItem[] },
 ) {
     return (
         <Card className="mt-4 w-full rounded-3xl border bg-background">
             {/* Header */}
             <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold">
-                    Latest Activity
+                    🏋️‍♀️ Latest Activity
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 max-h-[325px] overflow-y-auto pr-2">
                 {props.items.length > 0 ? props.items.map((item, index) => (
                     <div key={item.id} className="flex gap-4">
 

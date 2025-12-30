@@ -20,7 +20,7 @@ async function getHeaderConfig(): Promise<AxiosRequestConfig | undefined> {
   });
 
   const accessToken = token?.accessToken;
-
+  // console.log(accessToken)
   return {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -50,5 +50,5 @@ export async function axiosRequest<T = unknown>(
     method: type,
     ...(data !== undefined && type !== "GET" ? { data } : {}),
     ...config,
-  })
+  });
 }

@@ -6,10 +6,12 @@ import { getColumns } from './tableColumns';
 import { Row } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { SpaceItem } from '@/types/wrikeItem';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
+import { ItemChildrenIds } from './serverSpaceHelpers';
 
 interface Props {
     initialData: SpaceItem[];
-    dataFetcher: (parentIds: string[][]) => Promise<SpaceItem[]>;
+    dataFetcher: (parent: SpaceItem, parentIds: ItemChildrenIds) => Promise<SpaceItem[]>;
 }
 
 export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) => {
@@ -42,7 +44,7 @@ export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) =
         }
 
 
-        return [folderChildIds, taskChildIds];
+        return { folderChildIds, taskChildIds };
     }
 
     const handleExpand = async (rowId: string) => {
@@ -55,11 +57,12 @@ export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) =
 
         try {
             const childIds = getChildrenIdsToFetch(row);
-            const children = await dataFetcher(childIds);
+            const children = await dataFetcher(row, childIds);
             setData(prevData =>
                 new Map([...prevData, ...children.map((c: SpaceItem) => [c.itemId, c] as [string, SpaceItem])])
             );
         } catch (err) {
+            if (isRedirectError(err)) throw err;
             console.error("Failed to load next level", err);
         } finally {
             setFetchedForIds(prev => [...prev, rowId]);
@@ -114,6 +117,4 @@ export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) =
         />
     );
 };
-
-
 

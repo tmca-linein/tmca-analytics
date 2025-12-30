@@ -1,9 +1,7 @@
-import { axiosRequest } from "@/lib/axios";
-import { WrikeApiTasksResponse } from "@/types/wrikeItem";
-
-export async function getFolderTaskIds(parentId: string) {
-    const tasks = await axiosRequest<WrikeApiTasksResponse>('GET', `/folders/${parentId}/tasks?fields=["sharedIds", "authorIds", "subTaskIds"]`)
-    const taskData = tasks?.data?.data;
-    const taskIds = taskData.map(t => t.id);
-    return taskIds;
+export function chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+        chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
 }

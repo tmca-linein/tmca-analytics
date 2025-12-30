@@ -24,6 +24,7 @@ export type SpaceItem = {
     warning?: string;
     permalink?: string;
     sharedWith?: string;
+    sharedIds: string[];
     subRows: SpaceItem[];
     parentId?: string;
 };

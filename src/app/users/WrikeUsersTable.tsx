@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from "next/navigation";
 import { DataTable } from '../../components/table/data-table';
 import { getColumns } from './tableColumns';
@@ -12,7 +11,6 @@ interface Props {
 
 export const UsersTable: React.FC<Props> = ({ initialData }) => {
     const router = useRouter();
-    const [data, setData] = useState<User[]>(initialData);
     const columns = getColumns();
 
     const rowClickEvent = (id: string) => {
@@ -22,7 +20,7 @@ export const UsersTable: React.FC<Props> = ({ initialData }) => {
     return (
         <DataTable
             columns={columns}
-            data={data}
+            data={initialData}
             meta={{
                 onRowClicked: rowClickEvent,
                 loadingRows: undefined,
