@@ -6,11 +6,11 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = var.aws_region
 
-  tmca_analytics_release_version = "0.0.41"
+  tmca_analytics_release_version = "0.0.47"
   tmca_analytics_image           = "${local.account}.dkr.ecr.${local.region}.amazonaws.com/tmca_analytics:${local.tmca_analytics_release_version}"
 
-  rds_host = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/rds/host"
-  rds_name = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/rds/name"
+  rds_host = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/rds-prod/host"
+  rds_name = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/rds-prod/name"
 
   wrike_x_hook_secret_arn          = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/x-hook-secret"
   wrike_client_id_arn              = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/wrike-client-id"

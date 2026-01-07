@@ -10,8 +10,8 @@ import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth"
 
 export const metadata: Metadata = {
-  title: "TMCA Analytics",
-  description: "TMCA Wrike analytics app",
+  title: "TMCA Buddy",
+  description: "TMCA internal analytics app",
 };
 
 export default async function RootLayout({

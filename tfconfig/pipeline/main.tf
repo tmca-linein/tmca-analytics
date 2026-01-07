@@ -63,15 +63,9 @@ data "aws_ssm_parameter" "alb_zone_id" {
   with_decryption = false
 }
 
-# RDS config
-module "rds_postgres" {
-  source                = "../modules/rds"
-  rds_user              = local.rds_user
-  database_subnets      = split(",", data.aws_ssm_parameter.database_subnets.value)
-  security_group        = aws_security_group.rds_sg.id
-  subnet_group_name     = data.aws_ssm_parameter.database_subnet_group_name.value
-  rds_allocated_storage = local.rds_allocated_storage
-  rds_db_name           = local.rds_db_name
+data "aws_ssm_parameter" "rds_secret_arn" {
+  name            = "/tmcaa/rds-prod/secret"
+  with_decryption = false
 }
 
 # new ECS
@@ -96,7 +90,7 @@ module "tmca-analytics-engine" {
   asg_memory_target_value = 70
 
   # db
-  db_secret_arn = module.rds_postgres.rds_user_secret_arn
+  db_secret_arn = data.aws_ssm_parameter.rds_secret_arn.value
 
   # alb
   alb_security_group_id = data.aws_ssm_parameter.alb_security_group_id.value

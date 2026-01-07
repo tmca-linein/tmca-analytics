@@ -1,8 +1,6 @@
 
 import { axiosRequest } from "@/lib/axios";
 import { WrikeApiContactsResponse, WrikeApiUserGroupResponse } from "@/types/user";
-import axios, { AxiosError } from "axios";
-import { redirect } from "next/navigation";
 
 const userCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string>>();

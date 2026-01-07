@@ -52,7 +52,7 @@ export const mainAuthConfig: NextAuthOptions = {
             },
             token: {
                 async request(context) {
-                    const redirectUri = "https://wrike.tmcarobotics.com/api/auth/callback/wrike";
+                    const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/wrike`;
 
                     const params = new URLSearchParams({
                         grant_type: "authorization_code",

@@ -19,7 +19,7 @@ encoded_password=$(urlencode "$DB_PASSWORD")
 export DATABASE_URL="postgresql://${DB_USER}:${encoded_password}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
 echo "Running prisma migrate deploy..."
-npx prisma migrate deploy
+npx prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-url ${DATABASE_URL}
 
 echo "Starting app..."
 exec "$@"

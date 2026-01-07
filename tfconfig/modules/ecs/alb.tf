@@ -1,4 +1,5 @@
-resource "aws_lb_target_group" "wrike" {
+
+resource "aws_lb_target_group" "tmcaa" {
   name        = "tmca-analytics-tg"
   port        = 80
   protocol    = "HTTP"
@@ -15,33 +16,34 @@ resource "aws_lb_target_group" "wrike" {
   }
 }
 
-resource "aws_lb_listener_rule" "analytics" {
+# HTTPS :443 -> www host forward
+resource "aws_lb_listener_rule" "https_www_forward" {
   listener_arn = var.alb_listener_arn
   priority     = 100
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.wrike.arn
+    target_group_arn = aws_lb_target_group.tmcaa.arn
   }
 
   condition {
     host_header {
-      values = ["wrike.${trimsuffix(data.aws_route53_zone.main.name, ".")}"]
+      values = ["www.${trimsuffix(data.aws_route53_zone.main.name, ".")}"]
     }
   }
 }
 
-resource "aws_lb_listener_rule" "www_wrike_redirect" {
+# HTTPS :443 -> apex redirect to www
+resource "aws_lb_listener_rule" "https_apex_to_www" {
   listener_arn = var.alb_listener_arn
   priority     = 90
 
   action {
     type = "redirect"
-
     redirect {
       protocol    = "HTTPS"
       port        = "443"
-      host        = "wrike.${trimsuffix(data.aws_route53_zone.main.name, ".")}"
+      host        = "www.${trimsuffix(data.aws_route53_zone.main.name, ".")}"
       path        = "/#{path}"
       query       = "#{query}"
       status_code = "HTTP_301"
@@ -50,7 +52,12 @@ resource "aws_lb_listener_rule" "www_wrike_redirect" {
 
   condition {
     host_header {
-      values = ["www.wrike.${trimsuffix(data.aws_route53_zone.main.name, ".")}"]
+      values = [trimsuffix(data.aws_route53_zone.main.name, ".")]
     }
   }
+}
+
+resource "aws_lb_listener_certificate" "tmcaa_cert" {
+  listener_arn    = var.alb_listener_arn
+  certificate_arn = module.acm.acm_certificate_arn
 }

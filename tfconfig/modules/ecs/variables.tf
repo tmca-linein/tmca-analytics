@@ -69,8 +69,6 @@ variable "memory" {
   default     = 1024
 }
 
-
-
 variable "db_secret_arn" {
   type        = string
   description = ""

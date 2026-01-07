@@ -2,28 +2,28 @@ data "aws_route53_zone" "main" {
   name = var.hosted_zone
 }
 
-# module "acm" {
-#   source = "terraform-aws-modules/acm/aws"
+module "acm" {
+  source = "terraform-aws-modules/acm/aws"
 
-#   domain_name = data.aws_route53_zone.main.name
-#   zone_id     = data.aws_route53_zone.main.zone_id
+  domain_name = data.aws_route53_zone.main.name
+  zone_id     = data.aws_route53_zone.main.zone_id
 
-#   validation_method = "DNS"
+  validation_method = "DNS"
 
-#   subject_alternative_names = [
-#     "wrike.${data.aws_route53_zone.main.name}",
-#   ]
+  subject_alternative_names = [
+    "www.${trim(data.aws_route53_zone.main.name, ".")}",
+  ]
 
-#   wait_for_validation = true
+  wait_for_validation = true
 
-#   depends_on = [
-#     data.aws_route53_zone.main
-#   ]
-# }
+  depends_on = [
+    data.aws_route53_zone.main
+  ]
+}
 
-resource "aws_route53_record" "wrike_alias_a" {
+resource "aws_route53_record" "www_tmcaa_alias_a" {
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "wrike.${data.aws_route53_zone.main.name}"
+  name    = "www.${trim(data.aws_route53_zone.main.name, ".")}"
   type    = "A"
 
   alias {
@@ -33,9 +33,9 @@ resource "aws_route53_record" "wrike_alias_a" {
   }
 }
 
-resource "aws_route53_record" "www_wrike_alias_a" {
+resource "aws_route53_record" "tmcaa_alias_a" {
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "www.wrike.${data.aws_route53_zone.main.name}"
+  name    = data.aws_route53_zone.main.name
   type    = "A"
 
   alias {

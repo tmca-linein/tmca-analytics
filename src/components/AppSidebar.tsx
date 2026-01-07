@@ -1,6 +1,6 @@
 'use client'
 
-import { User, Satellite, BookOpen } from "lucide-react";
+import { User, Satellite, ChevronDown, BookOpen } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,49 +16,55 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+
+const tmcaachildren = [
+  {
+    title: "Analytics by Space",
+    url: "/space",
+    icon: Satellite,
+  },
+  {
+    title: "Analytics by User",
+    url: "/users",
+    icon: User,
+  },
+  {
+    title: "Documentation",
+    url: "/docs",
+    icon: BookOpen,
+  }
+];
 
 const tools = [
+  {
+    title: "Wrike Internal Analytics",
+    url: "https://www.wrike.com/",
+    icon: <Image src="/wrike-internal.png" alt="" width={18} height={18} />,
+    children: tmcaachildren
+  },
   {
     title: "Wrike",
     url: "https://www.wrike.com/",
     icon: <Image src="/wrike.png" alt="" width={18} height={18} />,
+    children: undefined
   },
   {
     title: "ChatGPT",
     url: "https://chatgpt.com/",
     icon: <Image src="/chatgpt.svg" alt="" width={18} height={18} />,
+    children: undefined
   },
 
   {
     title: "Drone Harmony",
     url: "https://tmca.droneharmony.com/",
     icon: <Image src="/dh.png" alt="" width={18} height={18} />,
-  },
-
-  {
-    title: "Sympa",
-    url: "https://www.sympahr.net/",
-    icon: <Image src="/sympa.png" alt="" width={18} height={18} />,
+    children: undefined
   }
 ];
 
-const items = [
-  {
-    title: "Wrike spaces",
-    url: "/space",
-    icon: Satellite,
-  },
-  {
-    title: "Wrike users",
-    url: "/users",
-    icon: User,
-  },
-  // {
-  //   title: "Documentation",
-  //   url: "/docs",
-  //   icon: BookOpen,
-  // }
-];
+
 
 const AppSidebar = () => {
   const {
@@ -80,36 +86,50 @@ const AppSidebar = () => {
       <SidebarSeparator />
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="">Application</SidebarGroupLabel>
+          <SidebarGroupLabel className="">Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Tools</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {tools.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      {item.icon}
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {tools.map((item) =>
+                item.children ? (
+                  <Collapsible key={item.title} defaultOpen={false} className="group/collapsible">
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton className="w-full">
+                          {item.icon}
+                          <span>{item.title}</span>
+                          <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <div className="pl-6">
+                          <SidebarMenu className="mt-1">
+                            {item.children.map((child) => (
+                              <SidebarMenuItem key={child.title}>
+                                <SidebarMenuButton asChild>
+                                  <Link href={child.url}>
+                                    <child.icon className="h-4 w-4" />
+                                    <span>{child.title}</span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </SidebarMenu>
+                        </div>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link href={item.url}>
+                        {item.icon}
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
