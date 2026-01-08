@@ -75,8 +75,8 @@ export async function fetchDailyActivity(legacyUserId: string | undefined) {
                     id: value.id,
                     title: taskData?.title ?? "(task)",
                     date: value.eventDate,
-                    description: `${await getUserName(value.authorUserId)} ${value.state === "ADDED" ? "added user to" : "removed user from"
-                        } the task.`,
+                    description: `${await getUserName(value.authorUserId)} ${value.state === "ADDED" ? "added user to ANF field." : "removed user from ANF field."
+                        }`,
                     type: "ANF",
                     link: taskData.permalink
                 };

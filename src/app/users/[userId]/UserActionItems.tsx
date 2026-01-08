@@ -1,13 +1,14 @@
 "use client";
 
 import { Pin, CalendarPlus, CalendarCheck2, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
 import clsx from "clsx";
 
 export type ActionItem = {
     id: string;
     title: string;
     actionNeededFromDate: string;
+    actionNeededUntilDate: string;
     overdueDuration: number;
     type: "ANF" | "NANFA" | "DTMBF";
     description: string;
@@ -27,6 +28,9 @@ export function UserActionItems(
                         <span>User action items</span>
                     </div>
                 </CardTitle>
+                <CardDescription>
+                    Displays unresolved user action items: <br /> 📍Answer is needed from (top 10 longest), 📍Next attention needed from assignee, 📍Date that must be finished
+                </CardDescription>
             </CardHeader>
 
             <CardContent className="max-h-[340px] overflow-y-auto pr-2">
@@ -56,6 +60,7 @@ export function UserActionItems(
                                         </div>
 
                                         <p className="mt-1 text-xs text-muted-foreground">Action needed from: {item.actionNeededFromDate}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">Action needed until: {item.actionNeededUntilDate}</p>
                                         <p className={clsx(
                                             "mt-1 text-xs",
                                             item.overdueDuration > 24

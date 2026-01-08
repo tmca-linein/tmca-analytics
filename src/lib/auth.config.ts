@@ -120,8 +120,8 @@ export const mainAuthConfig: NextAuthOptions = {
             }
 
             const expires = token.accessTokenExpires as number;
-            if (Date.now() > expires - 60 * 1000) { // Refresh 1 minute before expiry
-                return refreshWrikeAccessToken(token);
+            if ((Date.now() > expires - (60 * 1000)) && token.error !== "RefreshAccessTokenError") { // Refresh 1 minute before expiry
+                return { ...token, error: "RefreshAccessTokenError" };
             }
 
             return token;
@@ -132,6 +132,7 @@ export const mainAuthConfig: NextAuthOptions = {
                 session.error = token.error
             }
 
+            session.accessToken = token.accessToken;
             if (token.wrikeUserId) {
                 session.user.id = token.wrikeUserId as string;
             }

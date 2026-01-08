@@ -31,16 +31,17 @@ async function fetchANFDuration(legacyUserId: string | undefined) {
         pairs AS (
             SELECT
                 "eventDate" AS added_at,
+                next_date,
                 (EXTRACT(EPOCH FROM ("next_date" - "eventDate")) / 3600.0)::float8 AS duration
             FROM ordered
             WHERE state = 'ADDED' AND next_state = 'REMOVED'
         ),
         agg AS (
-            SELECT 'week'    AS granularity, date_trunc('week',    added_at) AS bucket, duration FROM pairs
+            SELECT 'week'    AS granularity, date_trunc('week',    next_date) AS bucket, duration FROM pairs
             UNION ALL
-            SELECT 'month'   AS granularity, date_trunc('month',   added_at) AS bucket, duration FROM pairs
+            SELECT 'month'   AS granularity, date_trunc('month',   next_date) AS bucket, duration FROM pairs
             UNION ALL
-            SELECT 'quarter' AS granularity, date_trunc('quarter', added_at) AS bucket, duration FROM pairs
+            SELECT 'quarter' AS granularity, date_trunc('quarter', next_date) AS bucket, duration FROM pairs
         ),
         ranked AS (
             SELECT
@@ -52,16 +53,24 @@ async function fetchANFDuration(legacyUserId: string | undefined) {
                 ORDER BY duration DESC
                 ) AS rn
             FROM agg
+        ),
+        latest AS (
+            SELECT granularity, MAX(bucket) AS bucket
+            FROM ranked
+            GROUP BY granularity
         )
         SELECT
-            granularity,
-            bucket,
-            ROUND(AVG(duration)::numeric, 1)::float8 AS avgduration,
-            ROUND(AVG(duration) FILTER (WHERE rn <= 5)::numeric, 1)::float8 AS topfiveavgduration,
+            r.granularity,
+            r.bucket,
+            ROUND(AVG(r.duration)::numeric, 1)::float8 AS avgduration,
+            ROUND(AVG(r.duration) FILTER (WHERE r.rn <= 5)::numeric, 1)::float8 AS topfiveavgduration,
             COUNT(*) AS transitions_count
-        FROM ranked
-        GROUP BY granularity, bucket
-        ORDER BY granularity, bucket;
+        FROM ranked r
+        JOIN latest l
+        ON l.granularity = r.granularity
+        AND l.bucket      = r.bucket
+        GROUP BY r.granularity, r.bucket
+        ORDER BY r.granularity, r.bucket;
     `;
     return anfDuration;
 }

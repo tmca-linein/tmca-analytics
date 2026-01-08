@@ -10,6 +10,7 @@ import {
   Row,
   getSortedRowModel,
   SortingState,
+  Column,
 } from "@tanstack/react-table";
 import { useState } from "react";
 import clsx from "clsx";
@@ -60,6 +61,17 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
     meta
   });
   const leafColumns = table.getAllLeafColumns();
+  const isStickyLeft = (col: Column<TData, unknown>): boolean => col.columnDef.meta?.pin ?? false;
+
+  const stickyLeftOffsets: Map<string, number> = new Map<string, number>();
+  let runningLeft = 0;
+
+  for (const col of leafColumns) {
+    if (isStickyLeft(col)) {
+      stickyLeftOffsets.set(col.id, runningLeft);
+      runningLeft += col.getSize();
+    }
+  }
   const gridTemplateColumns = leafColumns
     .map((col) => {
       const defaultSize = col.columnDef.size ?? 250;
@@ -88,6 +100,10 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
                 {hg.headers.map(h => {
                   const canSort = h.column.getCanSort();
                   const sortDir = h.column.getIsSorted(); // false | 'asc' | 'desc'
+                  const stickyLeft: boolean = h.column.columnDef.meta?.pin ?? false;
+                  const left: number | undefined = stickyLeft
+                    ? stickyLeftOffsets.get(h.column.id) ?? 0
+                    : undefined;
 
                   return (
 
@@ -96,8 +112,10 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
                       key={h.id}
                       className={clsx(
                         "relative p-2 font-semibold box-border border-b border-r last:border-r-0",
-                        canSort && "cursor-pointer select-none"
+                        canSort && "cursor-pointer select-none",
+                        stickyLeft && "sticky left-0 z-30 bg-background"
                       )}
+                      style={stickyLeft ? { left } : undefined}
                       onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
                       title={
                         canSort
@@ -157,12 +175,19 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
                   title={row.original.warning}
                 >
                   {row.getVisibleCells().map(cell => {
+                    const stickyLeft: boolean =
+                      cell.column.columnDef.meta?.pin ?? false;
+                    const left: number | undefined = stickyLeft
+                      ? stickyLeftOffsets.get(cell.column.id) ?? 0
+                      : undefined;
                     return (
                       <div
                         key={cell.id}
                         className={clsx(
                           "p-2",
+                          stickyLeft && "sticky left-0 z-20 bg-inherit"
                         )}
+                        style={stickyLeft ? { left } : undefined}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </div>

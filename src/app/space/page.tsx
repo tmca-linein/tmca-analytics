@@ -6,8 +6,8 @@ import { getChildrenBatch, getFolderTaskIds } from "./serverSpaceHelpers";
 import pLimit from 'p-limit';
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { chunkArray } from "./spaceHelpers";
+import { SessionExpired } from "@/components/AppSessionExpired";
 const limit = pLimit(5);
 
 type SpaceWithMetadata = WrikeSpace & {
@@ -23,7 +23,10 @@ async function getAllSpaceChildren(spaces: SpaceWithMetadata[]): Promise<SpaceIt
     const folderChunks = chunkArray(allChildIds, 100);
     const allFolderResponses = await Promise.all(
         folderChunks.map((chunk) =>
-            limit(() => axiosRequest<WrikeApiFolderResponse>('GET', `/folders/${chunk.join(',')}`))
+            limit(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 100))
+                return axiosRequest<WrikeApiFolderResponse>('GET', `/folders/${chunk.join(',')}`)
+            })
         )
     );
 
@@ -166,7 +169,7 @@ const SpaceItemsPage = async () => {
     const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
 
     if (!isAuthenticated) {
-        redirect('/login');
+        return (<SessionExpired />);
     }
 
     const data = await fetchSpaceItems();

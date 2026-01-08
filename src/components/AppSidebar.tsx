@@ -51,14 +51,14 @@ const tools = [
   },
   {
     title: "ChatGPT",
-    url: "https://chatgpt.com/",
+    url: "https://www.chatgpt.com/",
     icon: <Image src="/chatgpt.svg" alt="" width={18} height={18} />,
     children: undefined
   },
 
   {
     title: "Drone Harmony",
-    url: "https://tmca.droneharmony.com/",
+    url: "/dh",
     icon: <Image src="/dh.png" alt="" width={18} height={18} />,
     children: undefined
   }

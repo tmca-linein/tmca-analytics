@@ -6,13 +6,14 @@ import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
 import { Suspense } from "react";
 import { WrikeApiContactsResponse } from '@/types/user';
-import { redirect } from 'next/navigation';
+import { SessionExpired } from '@/components/AppSessionExpired';
 
 async function fetchUserInfo(userId: string) {
     const userDetailsResponse = await axiosRequest<WrikeApiContactsResponse>("GET", `/users/${userId}`);
     const userDetails = userDetailsResponse.data.data[0];
     return userDetails;
 }
+
 export default async function UserDetailsPage({
     params,
 }: {
@@ -22,7 +23,7 @@ export default async function UserDetailsPage({
     const session = await getServerSession(authConfig);
     const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
     if (!isAuthenticated) {
-        redirect("/login");
+        return (<SessionExpired />)
     }
 
     const userDetails = await fetchUserInfo(userId);

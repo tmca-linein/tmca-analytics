@@ -12,6 +12,7 @@ const DUMMY = {
     type: "ANF",
     description: "",
     actionNeededFromDate: "",
+    actionNeededUntilDate: "",
     overdueDuration: 0,
 }
 
@@ -50,8 +51,9 @@ async function fetchANFActionItems(legacyUserId: string | undefined) {
                 title: task.title,
                 link: task.permalink,
                 type: "ANF",
-                description: "Answer is needed!",
+                description: "📍 Answer is needed within 24h!",
                 actionNeededFromDate: ae.added_at.toISOString(),
+                actionNeededUntilDate: new Date(ae.added_at.getTime() + 24 * 60 * 60 * 1000).toISOString(),
                 overdueDuration: Math.max(ae.duration_hours - 24, 0),
             } satisfies ActionItem;
         })
@@ -87,10 +89,11 @@ async function fetchDateTypeActionItems(userId: string | undefined) {
             title: nT.title,
             link: nT.permalink,
             type: "NANFA",
-            description: "Next attention is needed from assignee.",
+            description: "📍 Next attention is needed from assignee.",
             actionNeededFromDate: nainDate.toISOString().slice(0, 10),
+            actionNeededUntilDate: nainDate.toISOString().slice(0, 10),
             overdueDuration: Math.max(durationHours - 24, 0),
-        } as ActionItem
+        } satisfies ActionItem
     });
 
     const dtmbfTasks = (dtmbf as WrikeTask[]).map(dT => {
@@ -106,10 +109,11 @@ async function fetchDateTypeActionItems(userId: string | undefined) {
             title: dT.title,
             link: dT.permalink,
             type: "DTMBF",
-            description: "Date that must be finished.",
-            actionNeededFromDate: dtmbfDate.toISOString().slice(0, 10),
+            description: "📍 Date that must be finished.",
+            actionNeededFromDate: "-",
+            actionNeededUntilDate: dtmbfDate.toISOString().slice(0, 10),
             overdueDuration: Math.max(durationHours - 24, 0),
-        } as ActionItem
+        } satisfies ActionItem
     });
 
     return [...nainTasks, ...dtmbfTasks];

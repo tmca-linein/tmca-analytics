@@ -7,4 +7,8 @@ declare module '@tanstack/react-table' {
     loadingRows?: Record<string, boolean>;
     getRowClassName?: (row: Row<TData>) => string;
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData, TValue> {
+    pin?: boolean;
+  }
 }

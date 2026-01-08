@@ -6,7 +6,7 @@ export type AnfStatsRow = { date: string; added: number; removed: number };
 const FILTERS: SelectFilterDef<AnfStatsRow>[] = [
     {
         id: "date",
-        label: "Period",
+        label: "Time range",
         defaultValue: "30d",
         options: [
             { value: "90d", label: "Quarter" },

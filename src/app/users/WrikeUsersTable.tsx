@@ -24,7 +24,7 @@ export const UsersTable: React.FC<Props> = ({ initialData }) => {
             meta={{
                 onRowClicked: rowClickEvent,
                 loadingRows: undefined,
-                getRowClassName: () => "hover:bg-sidebar/10 dark:hover:bg-sidebar"
+                getRowClassName: () => "bg-background hover:bg-sidebar-light dark:hover:bg-sidebar-light"
             }}
         />
     );

@@ -9,11 +9,13 @@ export const getColumns = (): ColumnDef<User>[] => [
     accessorKey: "firstName",
     header: "First Name",
     size: 250,
+    meta: { pin: true },
   },
   {
     accessorKey: "lastName",
     header: "Last Name",
     size: 250,
+    meta: { pin: true },
   },
   {
     accessorKey: "primaryEmail",

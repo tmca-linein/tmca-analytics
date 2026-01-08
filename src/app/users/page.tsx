@@ -2,11 +2,11 @@ import { UsersTable } from './WrikeUsersTable';
 import { axiosRequest } from '@/lib/axios';
 import { ApiWrikeUserGroup, WrikeApiContactsResponse, WrikeApiUserGroupResponse } from '@/types/user';
 import { getServerSession } from 'next-auth';
-import { redirect } from 'next/navigation';
 import { authConfig } from '@/lib/auth';
 import { getUserIdMapping } from "@/cache/legacyId-cache";
 import { fetchBulkANFActivity } from '../stats/anfRetriever';
 import { fetchBulkCommentActivity } from '../stats/commentsRetriever';
+import { SessionExpired } from '@/components/AppSessionExpired';
 
 
 function chunkArray<T>(array: T[], size: number): T[][] {
@@ -100,12 +100,12 @@ const fetchWrikeUsers = async (userId: string) => {
       anfRemovedToday: !!userMapping ? (anfUserDataMap[userMapping.apiV2Id].removedToday ?? 0) : 0,
       anfRemovedThisWeek: !!userMapping ? (anfUserDataMap[userMapping.apiV2Id].removedWeek ?? 0) : 0,
       anfRemovedThisMonth: !!userMapping ? (anfUserDataMap[userMapping.apiV2Id].removedMonth ?? 0) : 0,
-      commentsAddedToday: !!userMapping ? (commentUserDataMap[user.id]?.countToday ?? 0) : 0,
-      commentsAddedThisWeek: !!userMapping ? (commentUserDataMap[user.id]?.countWeek ?? 0) : 0,
-      commentsAddedThisMonth: !!userMapping ? (commentUserDataMap[user.id]?.countMonth ?? 0) : 0,
-      avgCommentLengthToday: !!userMapping ? Math.round(commentUserDataMap[user.id]?.avgWordCountToday ?? 0) : 0,
-      avgCommentLengthThisWeek: !!userMapping ? Math.round(commentUserDataMap[user.id]?.avgWordCountWeek ?? 0) : 0,
-      avgCommentLengthThisMonth: !!userMapping ? Math.round(commentUserDataMap[user.id]?.avgWordCountMonth ?? 0) : 0
+      commentsAddedToday: commentUserDataMap[user.id]?.countToday ?? 0,
+      commentsAddedThisWeek: commentUserDataMap[user.id]?.countWeek ?? 0,
+      commentsAddedThisMonth: commentUserDataMap[user.id]?.countMonth ?? 0,
+      avgCommentLengthToday: Math.round(commentUserDataMap[user.id]?.avgWordCountToday ?? 0),
+      avgCommentLengthThisWeek: Math.round(commentUserDataMap[user.id]?.avgWordCountWeek ?? 0),
+      avgCommentLengthThisMonth: Math.round(commentUserDataMap[user.id]?.avgWordCountMonth ?? 0)
     })
   });
 
@@ -117,7 +117,7 @@ const SpaceItemsPage = async () => {
   const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
 
   if (!isAuthenticated) {
-    redirect('/login');
+    return (<SessionExpired />)
   }
 
   const data = await fetchWrikeUsers(session.user?.id);
