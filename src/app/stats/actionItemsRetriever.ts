@@ -68,36 +68,34 @@ async function fetchDateTypeActionItems(userId: string | undefined) {
         "GET",
         `/tasks?responsibles=[${userId}]&fields=[customFields]`
     );
-
     // assigned tasks
     const assignedTasks = assignedTasksResponse.data.data ?? [];
     // // next attention is needed:
-    const nain = assignedTasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_NEXT_ATTENTION_NEEDED && cf.value != null))
+    const nain = assignedTasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_NEXT_ATTENTION_NEEDED && cf.value !== null && cf.value !== ""))
     // // date that must be finished:
-    const dtmbf = assignedTasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_DATE_THAT_MUST_BE_FINISHED && cf.value != null))
+    const dtmbf_active = assignedTasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_DATE_THAT_MUST_BE_FINISHED && cf.value !== null && cf.value !== ""))
 
     const nainTasks = (nain as WrikeTask[]).map(nT => {
-        if (!nT.customFields) return DUMMY;
+        if (!nT.customFields) return undefined;
         const nain = nT.customFields.filter(cf => cf.id === process.env.FIELD_NEXT_ATTENTION_NEEDED)[0];
         const nainDate = new Date(nain.value);
         const now = new Date();
         const durationHours =
             (now.getTime() - nainDate.getTime()) / (1000 * 60 * 60);
-
         return {
             id: nT.id,
             title: nT.title,
             link: nT.permalink,
             type: "NANFA",
             description: "📍 Next attention is needed from assignee.",
-            actionNeededFromDate: nainDate.toISOString().slice(0, 10),
-            actionNeededUntilDate: nainDate.toISOString().slice(0, 10),
+            actionNeededFromDate: nain.value,
+            actionNeededUntilDate: nain.value,
             overdueDuration: Math.max(durationHours - 24, 0),
         } satisfies ActionItem
-    });
+    }).filter(nt => !!nt);
 
-    const dtmbfTasks = (dtmbf as WrikeTask[]).map(dT => {
-        if (!dT.customFields) return DUMMY;
+    const dtmbfTasks = (dtmbf_active as WrikeTask[]).map(dT => {
+        if (!dT.customFields) return undefined;
         const dtmbf = dT.customFields.filter(cf => cf.id === process.env.FIELD_DATE_THAT_MUST_BE_FINISHED)[0];
         const dtmbfDate = new Date(dtmbf.value);
         const now = new Date();
@@ -111,10 +109,10 @@ async function fetchDateTypeActionItems(userId: string | undefined) {
             type: "DTMBF",
             description: "📍 Date that must be finished.",
             actionNeededFromDate: "-",
-            actionNeededUntilDate: dtmbfDate.toISOString().slice(0, 10),
+            actionNeededUntilDate: dtmbf.value,
             overdueDuration: Math.max(durationHours - 24, 0),
         } satisfies ActionItem
-    });
+    }).filter(dt => !!dt);
 
     return [...nainTasks, ...dtmbfTasks];
 }

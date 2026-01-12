@@ -19,7 +19,7 @@ export function UserActionItems(
     props: { items: ActionItem[] },
 ) {
     return (
-        <Card className="mt-4 w-full rounded-3xl border bg-background">
+        <Card className="h-full w-full rounded-3xl border bg-background">
             {/* Header */}
             <CardHeader className="">
                 <CardTitle className="text-lg font-semibold">

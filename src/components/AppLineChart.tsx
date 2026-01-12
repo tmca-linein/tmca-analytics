@@ -23,6 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Button } from "./ui/button"
 
 type SeriesDef<T> = {
     key: keyof T
@@ -51,6 +52,9 @@ type AppLineChartProps<TData extends Record<string, string | number>> = {
     heightClassName?: string
     xType?: "string" | "date";
     filters?: SelectFilterDef<TData>[];
+    switchState?: boolean;
+    onSwitch?: React.Dispatch<React.SetStateAction<boolean>>;
+    switchText?: string;
 }
 
 function AppLineChart<TData extends Record<string, string | number>>(
@@ -65,6 +69,9 @@ function AppLineChart<TData extends Record<string, string | number>>(
         heightClassName = "h-[400px]",
         xType,
         filters = [],
+        switchState,
+        onSwitch,
+        switchText
     } = props
 
     const chartConfig: ChartConfig = React.useMemo(() => {
@@ -151,6 +158,12 @@ function AppLineChart<TData extends Record<string, string | number>>(
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {!!switchState && !!onSwitch ?
+                                    <Button
+                                        onClick={() => onSwitch(!switchState)}
+                                        className="flex items-center font-semibold justify-center h-9 px-5 bg-sidebar transition-colors duration-300 rounded-lg focus:shadow-outline hover:bg-sidebar/90" >
+                                        {switchText}
+                                    </Button> : undefined}
                             </div>
                         ))}
                     </div>

@@ -6,7 +6,7 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = var.aws_region
 
-  tmca_analytics_release_version = "0.0.50"
+  tmca_analytics_release_version = "0.0.52"
   tmca_analytics_image           = "${local.account}.dkr.ecr.${local.region}.amazonaws.com/tmca_analytics:${local.tmca_analytics_release_version}"
 
   rds_host = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/rds-prod/host"

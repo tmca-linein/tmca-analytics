@@ -38,6 +38,16 @@ export interface WrikeApiContactsResponse {
     data: ApiWrikeUser[]
 }
 
+export type ApiWrikeUserProfile = {
+    accountId: string;
+    email: string;
+    role: string;
+    external: boolean;
+    admin: boolean;
+    owner: boolean;
+    active: boolean;
+}
+
 export type ApiWrikeUser = {
     id: string;
     firstName: string;
@@ -45,7 +55,7 @@ export type ApiWrikeUser = {
     type: string;
     avatarUrl?: string;
     deleted: boolean
-    profiles?: unknown;
+    profiles?: ApiWrikeUserProfile[];
     locale: string;
     timezone: string;
     me?: boolean;
@@ -55,6 +65,8 @@ export type ApiWrikeUser = {
     myTeam?: boolean;
     userTypeId: string;
     primaryEmail?: string;
+    phone?: string;
+    location?: string;
 };
 
 

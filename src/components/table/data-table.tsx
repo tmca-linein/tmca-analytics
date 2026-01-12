@@ -92,7 +92,7 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
         <div className="inline-block min-w-full align-middle">
 
           {/* header */}
-          <div role="rowgroup" className="sticky bg-background top-0 z-20" ref={headerRef}>
+          <div role="rowgroup" className="sticky bg-background top-0 z-30" ref={headerRef}>
             {table.getHeaderGroups().map(hg => (
               <div role="row" key={hg.id} className="grid" style={{
                 gridTemplateColumns
@@ -113,9 +113,9 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
                       className={clsx(
                         "relative p-2 font-semibold box-border border-b border-r last:border-r-0",
                         canSort && "cursor-pointer select-none",
-                        stickyLeft && "sticky left-0 z-30 bg-background"
+                        stickyLeft && "sticky z-50 bg-background"
                       )}
-                      style={stickyLeft ? { left } : undefined}
+                      style={stickyLeft ? { left, top: 0 } : undefined}
                       onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
                       title={
                         canSort

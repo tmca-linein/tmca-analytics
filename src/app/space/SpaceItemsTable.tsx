@@ -7,11 +7,10 @@ import { Row } from '@tanstack/react-table';
 import clsx from 'clsx';
 import { SpaceItem } from '@/types/wrikeItem';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
-import { ItemChildrenIds } from './serverSpaceHelpers';
 
 interface Props {
     initialData: SpaceItem[];
-    dataFetcher: (parent: SpaceItem, parentIds: ItemChildrenIds) => Promise<SpaceItem[]>;
+    dataFetcher: (parent: SpaceItem, subRows: SpaceItem[]) => Promise<SpaceItem[]>;
 }
 
 export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) => {
@@ -22,29 +21,22 @@ export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) =
 
     const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
 
-    const getChildrenIdsToFetch = (row: SpaceItem) => {
-        const folderChildIds = []
-        const taskChildIds = []
-        // iterate over folder type first level children
+    const getSubRowsToFetch = (row: SpaceItem) => {
+        const rowChildren = []
         for (const subRowId of row.folderChildIds) {
             const subRow = data.get(subRowId);
             if (!subRow || (subRow.folderChildIds.length === 0 && subRow.taskChildIds.length === 0)) continue;
-            // collect folder type 2nd level children
-            folderChildIds.push(...subRow.folderChildIds);
-            // folder children can also have task type children
-            taskChildIds.push(...subRow.taskChildIds);
+            rowChildren.push(subRow)
         }
 
-        // iterate over task type first level children
         for (const subRowId of row.taskChildIds) {
             const subRow = data.get(subRowId);
             if (!subRow || subRow.taskChildIds.length === 0) continue;
-            // task type children can only be of task type
-            taskChildIds.push(...subRow.taskChildIds);
+            rowChildren.push(subRow);
         }
 
 
-        return { folderChildIds, taskChildIds };
+        return rowChildren;
     }
 
     const handleExpand = async (rowId: string) => {
@@ -56,8 +48,8 @@ export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) =
         }
 
         try {
-            const childIds = getChildrenIdsToFetch(row);
-            const children = await dataFetcher(row, childIds);
+            const subRows = getSubRowsToFetch(row);
+            const children = await dataFetcher(row, subRows);
             setData(prevData =>
                 new Map([...prevData, ...children.map((c: SpaceItem) => [c.itemId, c] as [string, SpaceItem])])
             );

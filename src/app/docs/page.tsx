@@ -116,6 +116,7 @@ const sections: Section[] = [
             "Verify workload changes over time",
         ],
         tips: [
+            "(IMPORTANT!) 'ANF-removed' event counts only if a comment was written within 10 minutes of removing user from ANF field.",
             "Added (green) = new requests came in.",
             "Removed (red) = requests were resolved/removed.",
             "Flat chart usually means: not much happened in that period.",
@@ -135,9 +136,12 @@ const sections: Section[] = [
         ],
         whatItsFor: ["Answer: “Is this user responsive or slow?”"],
         tips: [
+            "(IMPORTANT!) 'ANF-removed' event counts only if a comment was written within 10 minutes of removing user from ANF field.",
             "If everything is 0, it usually means there were no relevant events in that period.",
+            "Week data will be loaded if there is at least one FULL loop from ANF-added to ANF-removed.",
+            "Graph displays data in selected granularity. Data is grouped by a event 'bucket' start date."
         ],
-        image: "/feedback.png"
+        image: "/feedback_v2.png"
     },
     {
         id: "user-comments",
@@ -165,7 +169,8 @@ const sections: Section[] = [
             "Comments and average comment length",
         ],
         whatItsFor: ["Answer: “How active is this user overall?”"],
-        tips: ["Zero values usually mean no activity, not that something is broken."],
+        tips: ["(IMPORTANT!) 'ANF-removed' event counts only if a comment was written within 10 minutes of removing user from ANF field.",
+            "Zero values usually mean no activity, not that something is broken."],
         image: "/stats.png"
     },
 ]

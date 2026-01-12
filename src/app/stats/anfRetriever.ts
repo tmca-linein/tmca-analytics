@@ -18,13 +18,17 @@ async function fetchANFDuration(legacyUserId: string | undefined) {
                 state,
                 "eventDate",
                 LEAD(state) OVER (
-                PARTITION BY "assignedUserId", "wrikeItemId"
-                ORDER BY "eventDate"
+                    PARTITION BY "assignedUserId", "wrikeItemId"
+                    ORDER BY "eventDate"
                 ) AS next_state,
                 LEAD("eventDate") OVER (
-                PARTITION BY "assignedUserId", "wrikeItemId"
-                ORDER BY "eventDate"
-                ) AS next_date
+                    PARTITION BY "assignedUserId", "wrikeItemId"
+                    ORDER BY "eventDate"
+                ) AS next_date,
+                LEAD("authorUserId") OVER (
+                    PARTITION BY "assignedUserId", "wrikeItemId"
+                    ORDER BY "eventDate"
+                ) AS next_authorUserId
             FROM "ANFEvent"
             WHERE "assignedUserId" = ${legacyUserId}
         ),
@@ -35,7 +39,18 @@ async function fetchANFDuration(legacyUserId: string | undefined) {
                 (EXTRACT(EPOCH FROM ("next_date" - "eventDate")) / 3600.0)::float8 AS duration
             FROM ordered
             WHERE state = 'ADDED' AND next_state = 'REMOVED'
-        ),
+            AND next_date IS NOT NULL
+            AND next_authorUserId IS NOT NULL
+            AND EXISTS (
+                SELECT 1
+                FROM "CommentEvent" ce
+                WHERE ce."wrikeItemId" = ordered."wrikeItemId"
+                    AND ce."userId" = next_authorUserId
+                    AND ce."eventDate" BETWEEN
+                        next_date - INTERVAL '10 minutes'
+                        AND next_date + INTERVAL '10 minutes'
+            )
+        ),  
         agg AS (
             SELECT 'week'    AS granularity, date_trunc('week',    next_date) AS bucket, duration FROM pairs
             UNION ALL
@@ -49,15 +64,10 @@ async function fetchANFDuration(legacyUserId: string | undefined) {
                 bucket,
                 duration,
                 ROW_NUMBER() OVER (
-                PARTITION BY granularity, bucket
-                ORDER BY duration DESC
+                    PARTITION BY granularity, bucket
+                    ORDER BY duration DESC
                 ) AS rn
             FROM agg
-        ),
-        latest AS (
-            SELECT granularity, MAX(bucket) AS bucket
-            FROM ranked
-            GROUP BY granularity
         )
         SELECT
             r.granularity,
@@ -66,9 +76,6 @@ async function fetchANFDuration(legacyUserId: string | undefined) {
             ROUND(AVG(r.duration) FILTER (WHERE r.rn <= 5)::numeric, 1)::float8 AS topfiveavgduration,
             COUNT(*) AS transitions_count
         FROM ranked r
-        JOIN latest l
-        ON l.granularity = r.granularity
-        AND l.bucket      = r.bucket
         GROUP BY r.granularity, r.bucket
         ORDER BY r.granularity, r.bucket;
     `;

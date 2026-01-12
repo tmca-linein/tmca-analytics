@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Building2, Clock, Mail, MapPin, Phone } from "lucide-react";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { ApiWrikeUser } from "@/types/user";
@@ -27,16 +27,24 @@ const UserDescription = (
                 <CardContent className="pb-4">
                     <div className="space-y-3 text-sm text-center">
                         <div className="flex items-center justify-center gap-3">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>{!!user.companyName ? user.companyName : 'Undefined'}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-3">
                             <Mail className="h-4 w-4 text-muted-foreground" />
                             <span>{user.primaryEmail}</span>
                         </div>
                         <div className="flex items-center justify-center gap-3">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span>{!!user.location ? user.location : 'Undefined'}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-3">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
                             <span>{user.timezone}</span>
                         </div>
                         <div className="flex items-center justify-center gap-3">
                             <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span>Not specified</span>
+                            <span>{!!user.phone ? user.phone : 'Undefined'}</span>
                         </div>
 
                     </div>

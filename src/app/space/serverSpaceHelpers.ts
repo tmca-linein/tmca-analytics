@@ -11,9 +11,47 @@ export type ItemChildrenIds = {
     taskChildIds: string[];
 }
 
-export const getChildrenBatch = cache(async (parent: SpaceItem, children: ItemChildrenIds): Promise<SpaceItem[]> => {
-    const folderTypeChildren = children.folderChildIds;
-    const taskTypeChildren = children.taskChildIds;
+async function buildSpaceItemWarnings(parentItem: SpaceItem, childItemSharedIds: string[]) {
+    const warnings: string[] = [];
+    const parentSharedSet = new Set(parentItem.sharedIds);
+    if (!childItemSharedIds) return "";
+    for (const sid of childItemSharedIds ?? []) {
+        if (parentSharedSet.has(sid)) continue;
+        const parents = getAllParents(sid) ?? [];
+        let covered = false;
+        for (const pid of parents) {
+            if (parentSharedSet.has(pid)) { covered = true; break; }
+        }
+
+        if (!covered) {
+            warnings.push(`${await getUserName(sid)} was explictly shared on a task level but not on a folder level!`);
+        }
+    }
+
+    const warning = warnings.join("; ");
+    return warning;
+}
+
+function convertLeafToSubRow(subRows: SpaceItem[]): Record<string, SpaceItem> {
+    const out: Record<string, SpaceItem> = {};
+    for (const subrow of subRows) {
+        const { taskChildIds, folderChildIds } = subrow;
+        for (const leafId of taskChildIds) {
+            out[leafId] = subrow;
+        }
+
+        for (const leafId of folderChildIds) {
+            out[leafId] = subrow;
+        }
+    }
+
+    return out;
+}
+
+export const getChildrenBatch = cache(async (parent: SpaceItem, subRows: SpaceItem[]): Promise<SpaceItem[]> => {
+    const leafToSubRowMap = convertLeafToSubRow(subRows);
+    const folderTypeChildren = subRows.flatMap(sr => sr.folderChildIds);
+    const taskTypeChildren = subRows.flatMap(sr => sr.taskChildIds);
     const result: SpaceItem[] = [];
 
     if (folderTypeChildren.length > 0) {
@@ -31,6 +69,8 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, children: ItemCh
                         .filter(sid => sid !== process.env.MAIN_UID)
                         .map(getUserName)
                 );
+                const parentItem = leafToSubRowMap[folder.id];
+                const warning = await buildSpaceItemWarnings(parentItem, folder.sharedIds);
                 const spaceItem: SpaceItem = {
                     itemId: folder.id,
                     itemName: folder.title,
@@ -39,7 +79,7 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, children: ItemCh
                     folderChildIds: folder.childIds,
                     taskChildIds: await getFolderTaskIds(folder.id), // for each fetched folder type child check 3rd level task ids
                     subRows: [], // will be filled on-demand
-                    warning: "",
+                    warning,
                     sharedIds: folder.sharedIds,
                     sharedWith: sharedNames.filter(Boolean).join(", "),
                     permalink: folder.permalink,
@@ -50,7 +90,6 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, children: ItemCh
         );
     }
 
-    const parentSharedSet = new Set(parent.sharedIds);
     if (taskTypeChildren.length > 0) {
         const taskChunks = chunkArray(taskTypeChildren, 100);
         const taskResponses = await Promise.all(
@@ -73,23 +112,8 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, children: ItemCh
             const author = task.authorIds?.[0]
                 ? await getUserName(task.authorIds[0])
                 : "";
-
-            const warnings: string[] = [];
-            for (const sid of task.sharedIds ?? []) {
-                if (parentSharedSet.has(sid)) continue;
-
-                const parents = getAllParents(sid) ?? [];
-                let covered = false;
-                for (const pid of parents) {
-                    if (parentSharedSet.has(pid)) { covered = true; break; }
-                }
-                if (!covered) {
-                    warnings.push(`${await getUserName(sid)} was explictly shared on a task level but not on a folder level!`);
-                }
-            }
-
-            const warning = warnings.join("; ");
-
+            const parentItem = leafToSubRowMap[task.id];
+            const warning = await buildSpaceItemWarnings(parentItem, task.sharedIds);
             result.push({
                 itemId: task.id,
                 itemName: task.title,
@@ -105,7 +129,6 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, children: ItemCh
             });
         }
     }
-
 
     return result;
 });

@@ -16,7 +16,7 @@ export function UserActivityWindow(
     props: { items: ActivityItem[] },
 ) {
     return (
-        <Card className="mt-4 w-full rounded-3xl border bg-background">
+        <Card className="h-full w-full rounded-3xl border bg-background">
             {/* Header */}
             <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold">

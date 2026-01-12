@@ -25,7 +25,7 @@ export default async function UserDataLoader(props: {
         actionItems
     ] = await Promise.all([
         fetchCommentStats(userId),
-        fetchDailyActivity(legacyUserId),
+        fetchDailyActivity(legacyUserId, userId),
         fetchANFData(userId, legacyUserId),
         fetchActionItems(userId, legacyUserId)
     ]);

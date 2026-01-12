@@ -23,7 +23,7 @@ function with404Fallback<T>(p: Promise<T>): Promise<TaskResult<T>> {
         });
 }
 
-export async function fetchDailyActivity(legacyUserId: string | undefined) {
+export async function fetchDailyActivity(legacyUserId: string | undefined, userId: string | undefined) {
 
     const now = new Date();
     const todayStart = startOfDay(now);
@@ -42,7 +42,7 @@ export async function fetchDailyActivity(legacyUserId: string | undefined) {
         SELECT
         *
         FROM "CommentEvent"
-        WHERE "userId" = ${legacyUserId}
+        WHERE "userId" = ${userId}
         AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd}
         ORDER BY "eventDate" DESC;
     `;

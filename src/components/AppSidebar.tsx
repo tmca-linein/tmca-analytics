@@ -1,6 +1,6 @@
 'use client'
 
-import { User, Satellite, ChevronDown, BookOpen } from "lucide-react";
+import { User, Satellite, ChevronDown, BookOpen, ShieldUser } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +17,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { getAdminStatus } from "@/lib/adminState";
+
 
 const tmcaachildren = [
   {
@@ -33,6 +36,13 @@ const tmcaachildren = [
     title: "Documentation",
     url: "/docs",
     icon: BookOpen,
+  },
+  {
+    title: "Admin panel",
+    url: "/admin",
+    icon: ShieldUser,
+    children: undefined,
+    restricted: true
   }
 ];
 
@@ -66,10 +76,12 @@ const tools = [
 
 
 
-const AppSidebar = () => {
+const AppSidebar = (props: { isAdmin: boolean }) => {
   const {
     state,
-  } = useSidebar()
+  } = useSidebar();
+  const isCollapsed = state !== "expanded";
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="py-5">
@@ -91,40 +103,70 @@ const AppSidebar = () => {
             <SidebarMenu>
               {tools.map((item) =>
                 item.children ? (
-                  <Collapsible key={item.title} defaultOpen={false} className="group/collapsible">
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton className="w-full">
-                          {item.icon}
-                          <span>{item.title}</span>
-                          <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
+                  isCollapsed ? (
+                    <SidebarMenuItem key={item.title}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuButton className="w-full justify-center">
+                            {item.icon}
+                            <span className="sr-only">{item.title}</span>
+                          </SidebarMenuButton>
+                        </DropdownMenuTrigger>
 
-                      <CollapsibleContent>
-                        <div className="pl-6">
-                          <SidebarMenu className="mt-1">
-                            {item.children.map((child) => (
-                              <SidebarMenuItem key={child.title}>
-                                <SidebarMenuButton asChild>
-                                  <Link href={child.url}>
-                                    <child.icon className="h-4 w-4" />
-                                    <span>{child.title}</span>
-                                  </Link>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            ))}
-                          </SidebarMenu>
-                        </div>
-                      </CollapsibleContent>
+                        <DropdownMenuContent side="right" align="start" className="min-w-56">
+                          <div className="px-2 py-1 text-sm font-semibold">{item.title}</div>
+                          {item.children.map((child) => (
+                            <DropdownMenuItem key={child.title} asChild>
+                              <Link href={child.url} className="flex items-center gap-2">
+                                <child.icon className="h-4 w-4" />
+                                <span>{child.title}</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </SidebarMenuItem>
-                  </Collapsible>
+                  ) : (
+                    <Collapsible key={item.title} defaultOpen={false} className="group/collapsible">
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton className="w-full">
+                            {item.icon}
+                            <span>{item.title}</span>
+                            <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+
+                        <CollapsibleContent>
+                          <div className="pl-6">
+                            <SidebarMenu className="mt-1">
+                              {item.children.map((child) => {
+                                if (child.restricted && props.isAdmin) return null;
+                                return (
+                                  <SidebarMenuItem key={child.title}>
+                                    <SidebarMenuButton asChild>
+                                      <Link href={child.url}>
+                                        <child.icon className="h-4 w-4" />
+                                        <span>{child.title}</span>
+                                      </Link>
+                                    </SidebarMenuButton>
+                                  </SidebarMenuItem>
+                                );
+                              })}
+                            </SidebarMenu>
+                          </div>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  )
                 ) : (
+                  // leaf item unchanged
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild className={isCollapsed ? "justify-center" : ""}>
                       <Link href={item.url}>
                         {item.icon}
-                        <span>{item.title}</span>
+                        {!isCollapsed && <span>{item.title}</span>}
+                        {isCollapsed && <span className="sr-only">{item.title}</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

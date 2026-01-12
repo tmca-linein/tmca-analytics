@@ -132,7 +132,6 @@ export const mainAuthConfig: NextAuthOptions = {
                 session.error = token.error
             }
 
-            session.accessToken = token.accessToken;
             if (token.wrikeUserId) {
                 session.user.id = token.wrikeUserId as string;
             }
