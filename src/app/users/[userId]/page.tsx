@@ -2,11 +2,8 @@ import UserDescription from '@/app/users/[userId]/UserDescription';
 import UserDataSkeleton from './_skeletons';
 import UserDataLoader from './UserDataLoader';
 import { axiosRequest } from "@/lib/axios";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/lib/auth";
 import { Suspense } from "react";
 import { WrikeApiContactsResponse } from '@/types/user';
-import { SessionExpired } from '@/components/AppSessionExpired';
 
 async function fetchUserInfo(userId: string) {
     const userDetailsResponse = await axiosRequest<WrikeApiContactsResponse>("GET", `/users/${userId}`);
@@ -17,15 +14,9 @@ async function fetchUserInfo(userId: string) {
 export default async function UserDetailsPage({
     params,
 }: {
-    params: { userId: string };
+    params: Promise<{ userId: string }>;
 }) {
     const { userId } = await params;
-    const session = await getServerSession(authConfig);
-    const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
-    if (!isAuthenticated) {
-        return (<SessionExpired />)
-    }
-
     const userDetails = await fetchUserInfo(userId);
     return (
         <>

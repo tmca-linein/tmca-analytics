@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-// import wrikeLogo from "@/../public/wrike.png";
 import { signIn } from "next-auth/react";
 
 export function WrikeSignInButton() {

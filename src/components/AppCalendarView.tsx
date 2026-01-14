@@ -35,6 +35,7 @@ export function AppCalendarView<TData extends AttentionItem>(
             acc[key] = acc[key] ? [...acc[key], item] : [item];
             return acc;
         }, {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const datesWithAttention = useMemo(
@@ -47,6 +48,7 @@ export function AppCalendarView<TData extends AttentionItem>(
             date
                 ? items.filter((item) => isSameDay(item.date, date))
                 : [],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [date]
     );
 

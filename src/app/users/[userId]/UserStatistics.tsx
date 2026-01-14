@@ -69,7 +69,7 @@ const UserStatistics = (
                             <span className="text-xs text-muted-foreground">/this month</span>
                         </div>
                     </div>
-                    <p className="mt-4 text-sm text-muted-foreground">Average commnent length (words)</p>
+                    <p className="mt-4 text-sm text-muted-foreground">Average comment length (words)</p>
                     <div className="grid grid-cols-3 rounded-2xl border bg-muted/40 text-center py-4">
                         <div className="flex flex-col gap-1">
                             <span className="text-base font-semibold">{Math.round(avgWordCountToday)}</span>

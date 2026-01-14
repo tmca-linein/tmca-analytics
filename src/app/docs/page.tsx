@@ -271,7 +271,8 @@ export default function UserOverviewDashboardDocsPage() {
                     This page tells you: <span className="font-medium">who the user is</span>,{" "}
                     <span className="font-medium">what they’ve been doing</span>,{" "}
                     <span className="font-medium">what they still owe</span>, and{" "}
-                    <span className="font-medium">how responsive they are</span>.
+                    <span className="font-medium">how responsive they are</span>.<br /><br />
+                    <span className="font-medium text-red-500">IMPORTANT! Events are tracked in UTC time zone (+0:00)!</span>
                 </p>
 
                 <div className="flex flex-wrap gap-2">

@@ -18,7 +18,6 @@ import Image from "next/image";
 import { useSidebar } from "@/components/ui/sidebar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { getAdminStatus } from "@/lib/adminState";
 
 
 const tmcaachildren = [
@@ -141,7 +140,7 @@ const AppSidebar = (props: { isAdmin: boolean }) => {
                           <div className="pl-6">
                             <SidebarMenu className="mt-1">
                               {item.children.map((child) => {
-                                if (child.restricted && props.isAdmin) return null;
+                                if (child.restricted && !props.isAdmin) return null;
                                 return (
                                   <SidebarMenuItem key={child.title}>
                                     <SidebarMenuButton asChild>

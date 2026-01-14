@@ -6,8 +6,8 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 import { NextAuthProvider } from "./providers";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/lib/auth"
+import { requireAuth } from "@/lib/auth"
+import { getAdminStatus } from "@/lib/adminState";
 
 export const metadata: Metadata = {
   title: "TMCA Buddy",
@@ -22,9 +22,7 @@ export default async function RootLayout({
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
 
-  const session = await getServerSession(authConfig);
-
-  const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
+  const { isAuthenticated } = await requireAuth();
 
   // If not logged in → show ONLY children (login page)
   if (!isAuthenticated) {
@@ -36,6 +34,8 @@ export default async function RootLayout({
       </html>
     );
   }
+
+  const { isAdmin } = await getAdminStatus();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -50,7 +50,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <SidebarProvider defaultOpen={defaultOpen}>
-              <AppSidebar />
+              <AppSidebar isAdmin={isAdmin} />
               <main className="flex-1 flex flex-col overflow-hidden">
                 <Navbar />
                 <div className="flex-1 overflow-auto min-w-0 min-h-0">

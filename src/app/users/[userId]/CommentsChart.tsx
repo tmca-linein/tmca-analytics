@@ -1,6 +1,7 @@
 "use client";
 
-import AppLineChart, { SelectFilterDef } from "@/components/AppLineChart";
+import AppBarChart from "@/components/AppBarChart";
+import { SelectFilterDef } from "@/components/AppLineChart";
 
 
 export type CommentsRow = { date: string; comments: number };
@@ -28,7 +29,7 @@ export default function WrikeChartClient({ data }: { data: CommentsRow[] }) {
     ];
 
     return (
-        <AppLineChart
+        <AppBarChart
             chartTitle="💬 User comments"
             chartDesc="Displays historical user activity based on placed comments"
             chartData={data}

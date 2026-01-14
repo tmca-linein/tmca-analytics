@@ -6,7 +6,7 @@ locals {
   account = data.aws_caller_identity.current.account_id
   region  = var.aws_region
 
-  tmca_analytics_release_version = "0.0.52"
+  tmca_analytics_release_version = "0.0.54"
   tmca_analytics_image           = "${local.account}.dkr.ecr.${local.region}.amazonaws.com/tmca_analytics:${local.tmca_analytics_release_version}"
 
   rds_host = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/rds-prod/host"
@@ -20,6 +20,8 @@ locals {
   field_next_attention_needed      = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/next-attention-needed"
   field_date_that_must_be_finished = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/date-that-must-be-finished"
   az_user                          = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/az-user"
+  wrike_account_id                 = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/account_id"
+  dev_admin                        = "arn:aws:ssm:${local.region}:${local.account}:parameter/tmcaa/dev_admin"
 
   log_group_name = "/ecs/${var.name}"
   service_name   = "${var.name}-service"

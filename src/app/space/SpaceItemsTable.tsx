@@ -10,7 +10,7 @@ import { isRedirectError } from 'next/dist/client/components/redirect-error';
 
 interface Props {
     initialData: SpaceItem[];
-    dataFetcher: (parent: SpaceItem, subRows: SpaceItem[]) => Promise<SpaceItem[]>;
+    dataFetcher: (subRows: SpaceItem[]) => Promise<SpaceItem[]>;
 }
 
 export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) => {
@@ -49,7 +49,7 @@ export const SpaceItemsTable: React.FC<Props> = ({ initialData, dataFetcher }) =
 
         try {
             const subRows = getSubRowsToFetch(row);
-            const children = await dataFetcher(row, subRows);
+            const children = await dataFetcher(subRows);
             setData(prevData =>
                 new Map([...prevData, ...children.map((c: SpaceItem) => [c.itemId, c] as [string, SpaceItem])])
             );

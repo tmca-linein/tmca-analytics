@@ -1,10 +1,11 @@
 "use server";
 
-import { cache } from "react";
 import { getAllParents, getUserName } from '@/cache/user-cache';
 import { axiosRequest } from '@/lib/axios';
 import { SpaceItem, WrikeApiFolderResponse, WrikeApiTasksResponse } from '@/types/wrikeItem';
 import { chunkArray } from "./spaceHelpers";
+import pLimit from 'p-limit';
+const limit = pLimit(5);
 
 export type ItemChildrenIds = {
     folderChildIds: string[];
@@ -48,7 +49,7 @@ function convertLeafToSubRow(subRows: SpaceItem[]): Record<string, SpaceItem> {
     return out;
 }
 
-export const getChildrenBatch = cache(async (parent: SpaceItem, subRows: SpaceItem[]): Promise<SpaceItem[]> => {
+export const getChildrenBatch = async (subRows: SpaceItem[]): Promise<SpaceItem[]> => {
     const leafToSubRowMap = convertLeafToSubRow(subRows);
     const folderTypeChildren = subRows.flatMap(sr => sr.folderChildIds);
     const taskTypeChildren = subRows.flatMap(sr => sr.taskChildIds);
@@ -63,14 +64,15 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, subRows: SpaceIt
         const folders = response?.data?.data ?? [];
         // save folder level
         await Promise.all(
-            folders.map(async folder => {
+            folders.map(folder => limit(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 100));
                 const sharedNames = await Promise.all(
                     folder.sharedIds
                         .filter(sid => sid !== process.env.MAIN_UID)
                         .map(getUserName)
                 );
-                const parentItem = leafToSubRowMap[folder.id];
-                const warning = await buildSpaceItemWarnings(parentItem, folder.sharedIds);
+                // const parentItem = leafToSubRowMap[folder.id];
+                // const warning = await buildSpaceItemWarnings(parentItem, folder.sharedIds);
                 const spaceItem: SpaceItem = {
                     itemId: folder.id,
                     itemName: folder.title,
@@ -79,14 +81,14 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, subRows: SpaceIt
                     folderChildIds: folder.childIds,
                     taskChildIds: await getFolderTaskIds(folder.id), // for each fetched folder type child check 3rd level task ids
                     subRows: [], // will be filled on-demand
-                    warning,
+                    warning: "",
                     sharedIds: folder.sharedIds,
                     sharedWith: sharedNames.filter(Boolean).join(", "),
                     permalink: folder.permalink,
                 };
 
                 result.push(spaceItem);
-            })
+            }))
         );
     }
 
@@ -131,7 +133,7 @@ export const getChildrenBatch = cache(async (parent: SpaceItem, subRows: SpaceIt
     }
 
     return result;
-});
+};
 
 export async function getFolderTaskIds(parentId: string) {
     const tasks = await axiosRequest<WrikeApiTasksResponse>('GET', `/folders/${parentId}/tasks?fields=["sharedIds", "authorIds", "subTaskIds"]`)

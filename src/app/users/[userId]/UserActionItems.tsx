@@ -29,7 +29,7 @@ export function UserActionItems(
                     </div>
                 </CardTitle>
                 <CardDescription>
-                    Displays unresolved user action items: <br /> 📍Answer is needed from (top 10 longest), 📍Next attention needed from assignee, 📍Date that must be finished
+                    Displays unresolved user action items: <br /> 📍Answer is needed from (top 10 longest), 📍Next attention needed from assignee (all), 📍Date that must be finished (all)
                 </CardDescription>
             </CardHeader>
 

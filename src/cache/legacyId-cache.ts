@@ -1,31 +1,39 @@
-import { cache } from "react";
 import prisma from '@/lib/db';
-import { axiosRequest } from '@/lib/axios';
+import { axiosRequest, getHeaderConfig } from '@/lib/axios';
 import { WrikeLegacyIdConversionResponse } from "@/types/user";
+import { AxiosRequestConfig } from "axios";
+import { unstable_cache } from "next/cache";
 
 type Mapping = { id: string; apiV2Id: string }; // adjust
 
-// Cached function: given a key (stringified IDs), fetch mappings once
-const fetchMappingsCached = cache(async (idsKey: string) => {
-  const ids = JSON.parse(idsKey) as string[];
 
-  if (ids.length === 0) return [];
-
-  const res = await axiosRequest<WrikeLegacyIdConversionResponse>(
-    "GET",
-    `/ids?type=ApiV2User&ids=[${ids.join(",")}]`
-  );
-
-  return (res?.data.data ?? []) as Mapping[];
-});
-
-export async function getUserIdMapping(): Promise<Mapping[]> {
+async function fetchMappings(config: AxiosRequestConfig | undefined) {
   const uniqueLegacyUsers = await prisma.aNFEvent.findMany({
     distinct: ["assignedUserId"],
     select: { assignedUserId: true },
   });
 
-  const uniqueIds = uniqueLegacyUsers.map(u => u.assignedUserId).sort();
-  const key = JSON.stringify(uniqueIds); // cache key depends on current IDs
-  return fetchMappingsCached(key);
+  const ids = uniqueLegacyUsers.map(u => u.assignedUserId).sort();
+  if (ids.length === 0) return [];
+
+  const res = await axiosRequest<WrikeLegacyIdConversionResponse>(
+    "GET",
+    `/ids?type=ApiV2User&ids=[${ids.join(",")}]`,
+    undefined,
+    config
+  );
+
+  return (res?.data.data ?? []) as Mapping[];
+}
+
+const cachedUserIdMapping = unstable_cache(
+  async (config: AxiosRequestConfig | undefined) => await fetchMappings(config),
+  [`wrike-legacyId`],
+  { revalidate: 3600 }
+);
+
+
+export async function getUserIdMapping(): Promise<Mapping[]> {
+  const config = await getHeaderConfig();
+  return await cachedUserIdMapping(config);
 }

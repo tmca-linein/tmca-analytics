@@ -3,11 +3,11 @@ import { UserActivityWindow } from '@/app/users/[userId]/UserActivityWindow';
 import { getUserIdMapping } from "@/cache/legacyId-cache";
 import CommentsChart, { CommentsRow } from './CommentsChart';
 import AnfDuration, { AnfDurationRow } from './AnfDuration';
-import { fetchANFData } from '@/app/stats/anfRetriever';
-import { fetchDailyActivity } from '@/app/stats/dailyActivityRetriever';
-import { fetchCommentStats } from '@/app/stats/commentsRetriever';
+import { fetchANFData } from '@/stats/anfRetriever';
+import { fetchDailyActivity } from '@/stats/dailyActivityRetriever';
+import { fetchCommentStats } from '@/stats/commentsRetriever';
 import { UserActionItems } from "@/app/users/[userId]/UserActionItems";
-import { fetchActionItems } from "@/app/stats/actionItemsRetriever";
+import { fetchActionItems } from "@/stats/actionItemsRetriever";
 import AnfStats, { AnfStatsRow } from "./AnfStatsChart";
 
 export default async function UserDataLoader(props: {

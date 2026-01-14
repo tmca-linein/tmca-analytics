@@ -24,6 +24,8 @@ interface DataTableProps<TData extends { id?: string, subRows?: TData[], warning
     onRowExpand?: (rowId: string) => void;
     onRowClicked?: (rowId: string) => void;
     getRowClassName?: (row: Row<TData>) => string;
+    updateData?: (rowId: string, columnId: string, value: unknown) => void;
+    removeRow?: (rowId: string) => void;
   }
 }
 
@@ -36,11 +38,6 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
   const [offset, setOffset] = useState(0);
   const [sorting, setSorting] = useState<SortingState>([]);
   const headerRef = useRef<HTMLTableSectionElement>(null);
-
-  useEffect(() => {
-    if (headerRef.current) setOffset(headerRef.current.offsetHeight);
-    table.resetColumnSizing(true); // true = force re-measure
-  }, []);
 
   const table = useReactTable({
     data,
@@ -60,6 +57,12 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
     },
     meta
   });
+
+  useEffect(() => {
+    if (headerRef.current) setOffset(headerRef.current.offsetHeight);
+    table.resetColumnSizing(true); // true = force re-measure
+  }, [table]);
+
   const leafColumns = table.getAllLeafColumns();
   const isStickyLeft = (col: Column<TData, unknown>): boolean => col.columnDef.meta?.pin ?? false;
 

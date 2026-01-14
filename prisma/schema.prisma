@@ -28,3 +28,10 @@ model CommentEvent {
 
   @@index([userId, eventDate])
 }
+
+model RBAC {
+  id       String   @id @default(uuid())
+  company  String?
+  role     String?
+  accessTo String[]
+}

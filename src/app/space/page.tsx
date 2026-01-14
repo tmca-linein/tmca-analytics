@@ -3,11 +3,8 @@ import { SpaceItemsTable } from "./SpaceItemsTable";
 import { axiosRequest } from "@/lib/axios";
 import { cacheAncestorMappings, getAllParents, getUserName } from "@/cache/user-cache";
 import { getChildrenBatch, getFolderTaskIds } from "./serverSpaceHelpers";
-import pLimit from 'p-limit';
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/lib/auth";
 import { chunkArray } from "./spaceHelpers";
-import { SessionExpired } from "@/components/AppSessionExpired";
+import pLimit from 'p-limit';
 const limit = pLimit(5);
 
 type SpaceWithMetadata = WrikeSpace & {
@@ -32,21 +29,24 @@ async function getAllSpaceChildren(spaces: SpaceWithMetadata[]): Promise<SpaceIt
 
     const childFolders = allFolderResponses.flatMap(r => r.data.data);
     const items: SpaceItem[] = await Promise.all(
-        childFolders.map(async f => ({
-            itemId: f.id,
-            itemName: f.title,
-            itemType: f.project ? "Project" : "Folder",
-            author: f.project?.authorId ? await getUserName(f.project.authorId) || "" : "",
-            folderChildIds: f.childIds || [],
-            taskChildIds: await getFolderTaskIds(f.id),
-            subRows: [],
-            warning: "",
-            sharedIds: f.sharedIds,
-            sharedWith: (await Promise.all(
-                f.sharedIds.filter(sid => sid !== process.env.MAIN_UID).map(getUserName)
-            )).filter(Boolean)
-                .join(", "),
-            permalink: f.permalink,
+        childFolders.map(async f => limit(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 100))
+            return ({
+                itemId: f.id,
+                itemName: f.title,
+                itemType: f.project ? "Project" : "Folder",
+                author: f.project?.authorId ? await getUserName(f.project.authorId) || "" : "",
+                folderChildIds: f.childIds || [],
+                taskChildIds: await getFolderTaskIds(f.id),
+                subRows: [],
+                warning: "",
+                sharedIds: f.sharedIds,
+                sharedWith: (await Promise.all(
+                    f.sharedIds.filter(sid => sid !== process.env.MAIN_UID).map(getUserName)
+                )).filter(Boolean)
+                    .join(", "),
+                permalink: f.permalink,
+            })
         }))
     );
 
@@ -85,7 +85,7 @@ async function getAllSpaceTasks(spaces: SpaceWithMetadata[]): Promise<SpaceItem[
                     if (parentSharedSet.has(pid)) { covered = true; break; }
                 }
                 if (!covered) {
-                    warnings.push(`User ${sid} was explictly shared on a task level but not on a folder level!`);
+                    warnings.push(`User ${await getUserName(sid)} was explictly shared on a task level but not on a folder level!`);
                 }
             }
 
@@ -165,13 +165,6 @@ const fetchSpaceItems = async (): Promise<SpaceItem[]> => {
 };
 
 const SpaceItemsPage = async () => {
-    const session = await getServerSession(authConfig);
-    const isAuthenticated = !!session && (session?.error !== "RefreshAccessTokenError");
-
-    if (!isAuthenticated) {
-        return (<SessionExpired />);
-    }
-
     const data = await fetchSpaceItems();
     return (
         <>

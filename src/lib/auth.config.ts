@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function refreshWrikeAccessToken(token: JWT): Promise<JWT> {
     try {
         const params = new URLSearchParams({

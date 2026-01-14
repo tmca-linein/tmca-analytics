@@ -5,17 +5,6 @@ import { WrikeApiTasksResponse, WrikeTask } from "@/types/wrikeItem";
 import { ActionItem } from "@/app/users/[userId]/UserActionItems";
 const limit = pLimit(5);
 
-const DUMMY = {
-    id: "1",
-    title: "",
-    link: "",
-    type: "ANF",
-    description: "",
-    actionNeededFromDate: "",
-    actionNeededUntilDate: "",
-    overdueDuration: 0,
-}
-
 type TaskResult<T> =
     { ok: true; value: T }
     | { ok: false; status: 404; fallback: "NOT_FOUND" }

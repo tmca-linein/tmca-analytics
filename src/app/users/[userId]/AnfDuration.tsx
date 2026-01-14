@@ -1,7 +1,6 @@
 "use client";
 
 import AppLineChart, { SelectFilterDef } from "@/components/AppLineChart";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 
@@ -80,7 +79,7 @@ export default function AnfDuration({ anfData }: { anfData: AnfDurationRow[] }) 
                                 Average time (in hours) that took user to respond to the ANF event
                             </CardDescription>
                         </div>
-                        <div className="flex gap-2 sm:ml-auto">
+                        {/* <div className="flex gap-2 sm:ml-auto">
                             <div className="flex gap-2">
                                 <Button
                                     onClick={() => setUseGraph(!useGraph)}
@@ -88,7 +87,7 @@ export default function AnfDuration({ anfData }: { anfData: AnfDurationRow[] }) 
                                     Switch to historical data
                                 </Button>
                             </div>
-                        </div>
+                        </div> */}
                     </CardHeader>
                     <CardContent className="pb-4">
                         <p className="mt-4 text-sm text-muted-foreground">This week</p>
@@ -103,7 +102,7 @@ export default function AnfDuration({ anfData }: { anfData: AnfDurationRow[] }) 
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{weekData?.transitions_count ?? 0}</span>
-                                <span className="text-xs text-muted-foreground">Trasition count</span>
+                                <span className="text-xs text-muted-foreground">Transition count</span>
                             </div>
                         </div>
                         <p className="mt-4 text-sm text-muted-foreground">This month</p>
@@ -118,7 +117,7 @@ export default function AnfDuration({ anfData }: { anfData: AnfDurationRow[] }) 
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{monthData?.transitions_count ?? 0}</span>
-                                <span className="text-xs text-muted-foreground">Trasition count</span>
+                                <span className="text-xs text-muted-foreground">Transition count</span>
                             </div>
                         </div>
                         <p className="mt-4 text-sm text-muted-foreground">This quarter</p>
@@ -133,7 +132,7 @@ export default function AnfDuration({ anfData }: { anfData: AnfDurationRow[] }) 
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{quarterData?.transitions_count ?? 0}</span>
-                                <span className="text-xs text-muted-foreground">Trasition count</span>
+                                <span className="text-xs text-muted-foreground">Transition count</span>
                             </div>
                         </div>
                     </CardContent>
