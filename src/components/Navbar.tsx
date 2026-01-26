@@ -14,6 +14,7 @@ import {
 import { Button } from "./ui/button";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useSession, signOut } from "next-auth/react";
+import { invalidateSessionCache } from "@/cache/wrikeItem-cache";
 
 const Navbar = () => {
   const router = useRouter();
@@ -65,7 +66,9 @@ const Navbar = () => {
               <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={() => signOut()}>
+            <DropdownMenuItem variant="destructive" onClick={() => {
+              signOut()
+            }}>
               <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />
               Logout
             </DropdownMenuItem>

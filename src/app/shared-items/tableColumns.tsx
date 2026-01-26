@@ -9,7 +9,7 @@ import { ChevronsDownUp, ChevronsUpDown, ChevronDown, ChevronRight, Satellite, F
 export const getColumns = (): ColumnDef<SpaceItem>[] => [
   {
     id: "itemName",
-    accessorKey: "itemNam1e",
+    accessorKey: "itemName",
     header: ({ table }) => (
       <div className="flex items-center gap-2">
         <button onClick={table.getToggleAllRowsExpandedHandler()}>

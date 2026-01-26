@@ -1,7 +1,7 @@
 "use client";
 
 import { Pin, Pencil } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 export type ActivityItem = {
     id: string;
@@ -12,7 +12,7 @@ export type ActivityItem = {
     link: string;
 };
 
-export function UserActivityWindow(
+export function AppActivityWindow(
     props: { items: ActivityItem[] },
 ) {
     return (
@@ -24,7 +24,7 @@ export function UserActivityWindow(
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-6 max-h-[325px] overflow-y-auto pr-2">
+            <CardContent className="space-y-6 max-h-[340px] overflow-y-auto pr-2">
                 {props.items.length > 0 ? props.items.map((item, index) => (
                     <div key={item.id} className="flex gap-4">
 

@@ -1,9 +1,10 @@
 import { axiosRequest } from "@/lib/axios";
-import { fetchTopTenLongestActiveANFDurations } from "./anfRetriever";
-import pLimit from 'p-limit';
 import { WrikeApiTasksResponse, WrikeTask } from "@/types/wrikeItem";
-import { ActionItem } from "@/app/users/[userId]/UserActionItems";
-const limit = pLimit(5);
+import { ActionItem } from "@/components/AppActionItems";
+import { fetchTopLongestActiveANFDurations } from "./anfRetriever";
+import { ANFLongDurationItem } from "@/types/stats";
+import { chunkArray } from "@/lib/utils";
+import { getTasksForSession } from "@/cache/wrikeItem-cache";
 
 type TaskResult<T> =
     { ok: true; value: T }
@@ -20,51 +21,59 @@ function with404Fallback<T>(p: Promise<T>): Promise<TaskResult<T>> {
         });
 }
 
-async function fetchANFActionItems(legacyUserId: string | undefined) {
-    const anfEvents = await fetchTopTenLongestActiveANFDurations(legacyUserId);
-    const actionItemPromises = anfEvents.map((ae) =>
-        limit(async () => {
-            const taskResult = await with404Fallback(
-                axiosRequest<WrikeApiTasksResponse>("GET", `/tasks/${ae.wrikeItemId}`)
-            );
-
-            const task =
-                taskResult.ok
-                    ? taskResult.value.data.data[0]
-                    : taskResult.status === 404
-                        ? { title: "***You are not authorised to view this task***", permalink: "#" }
-                        : { title: "Error occurred while loading the task!", permalink: "#" };
+async function buildANFActionItemList(anfEvents: ANFLongDurationItem[]) {
+    const tasksToFetch = anfEvents.map(ae => ae.wrikeItemId);
+    const taskChunks = chunkArray(tasksToFetch, 100);
+    const taskChunkResponses = await Promise.all(
+        taskChunks.map((chunk) =>
+            with404Fallback(
+                axiosRequest<WrikeApiTasksResponse>("GET", `/tasks/${chunk.join(",")}`)
+            )
+        )
+    );
+    const tasks: WrikeTask[] = taskChunkResponses.flatMap(r =>
+        r.ok ? (r.value.data.data as WrikeTask[]) : []
+    );
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+    const anfActionItems = await Promise.all(
+        anfEvents.map(async (value) => {
+            const task = taskById.get(value.wrikeItemId);
+            const taskData = task
+                ? task
+                : { title: "***Task not found or not authorised***", permalink: "#" };
 
             return {
-                id: ae.id,
-                title: task.title,
-                link: task.permalink,
+                id: value.id,
+                title: taskData.title,
+                link: taskData.permalink,
                 type: "ANF",
                 description: "📍 Answer is needed within 24h!",
-                actionNeededFromDate: ae.added_at.toISOString(),
-                actionNeededUntilDate: new Date(ae.added_at.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-                overdueDuration: Math.max(ae.duration_hours - 24, 0),
+                actionNeededFromDate: value.added_at.toISOString(),
+                actionNeededUntilDate: new Date(value.added_at.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+                overdueDuration: Math.max(value.duration_hours - 24, 0),
             } satisfies ActionItem;
-        })
-    );
+        }));
 
-    const actionItems: ActionItem[] = await Promise.all(actionItemPromises);
-    return actionItems;
+    return anfActionItems;
 }
 
-async function fetchDateTypeActionItems(userId: string | undefined) {
-    const assignedTasksResponse = await axiosRequest<WrikeApiTasksResponse>(
-        "GET",
-        `/tasks?responsibles=[${userId}]&fields=[customFields]`
-    );
-    // assigned tasks
-    const assignedTasks = assignedTasksResponse.data.data ?? [];
-    // // next attention is needed:
-    const nain = assignedTasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_NEXT_ATTENTION_NEEDED && cf.value !== null && cf.value !== ""))
-    // // date that must be finished:
-    const dtmbf_active = assignedTasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_DATE_THAT_MUST_BE_FINISHED && cf.value !== null && cf.value !== ""))
+async function fetchUserANFActionItems(legacyUserId: string | undefined) {
+    const anfEvents = await fetchTopLongestActiveANFDurations(legacyUserId ?? '', [], 10);
+    return buildANFActionItemList(anfEvents);
+}
 
-    const nainTasks = (nain as WrikeTask[]).map(nT => {
+async function fetchSpaceItemANFActionItems(taskIds: string[]) {
+    const anfEvents = await fetchTopLongestActiveANFDurations(null, taskIds, 10);
+    return buildANFActionItemList(anfEvents)
+}
+
+async function buildDateTypeActionItems(tasks: WrikeTask[]) {
+    // next attention is needed:
+    const nainTasks = tasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_NEXT_ATTENTION_NEEDED && cf.value !== null && cf.value !== ""))
+    // date that must be finished:
+    const dtmbfTasks = tasks.filter(at => at.status === "Active" && at.customFields?.some(cf => cf.id === process.env.FIELD_DATE_THAT_MUST_BE_FINISHED && cf.value !== null && cf.value !== ""))
+
+    const nainAI = (nainTasks as WrikeTask[]).map(nT => {
         if (!nT.customFields) return undefined;
         const nain = nT.customFields.filter(cf => cf.id === process.env.FIELD_NEXT_ATTENTION_NEEDED)[0];
         const nainDate = new Date(nain.value);
@@ -83,7 +92,7 @@ async function fetchDateTypeActionItems(userId: string | undefined) {
         } satisfies ActionItem
     }).filter(nt => !!nt);
 
-    const dtmbfTasks = (dtmbf_active as WrikeTask[]).map(dT => {
+    const dtmbfAI = (dtmbfTasks as WrikeTask[]).map(dT => {
         if (!dT.customFields) return undefined;
         const dtmbf = dT.customFields.filter(cf => cf.id === process.env.FIELD_DATE_THAT_MUST_BE_FINISHED)[0];
         const dtmbfDate = new Date(dtmbf.value);
@@ -103,13 +112,38 @@ async function fetchDateTypeActionItems(userId: string | undefined) {
         } satisfies ActionItem
     }).filter(dt => !!dt);
 
-    return [...nainTasks, ...dtmbfTasks];
+    return [...nainAI, ...dtmbfAI];
 }
 
-export async function fetchActionItems(userId: string | undefined, legacyUserId: string | undefined) {
-    const anfActionItems = await fetchANFActionItems(legacyUserId);
+async function fetchDateTypeActionItems(userId: string | undefined) {
+    const assignedTasksResponse = await axiosRequest<WrikeApiTasksResponse>(
+        "GET",
+        `/tasks?responsibles=[${userId}]&fields=[customFields]`
+    );
+    // assigned tasks
+    const assignedTasks = assignedTasksResponse.data.data ?? [];
+    return buildDateTypeActionItems(assignedTasks);
+}
+
+async function fetchSpaceItemDateTypeActionItems(userId: string, taskIds: string[]) {
+    const tasks = await getTasksForSession(userId);
+    // // next attention is needed:
+    const filteredTasks = tasks.filter(t => taskIds.includes(t.id));
+    return buildDateTypeActionItems(filteredTasks);
+}
+
+export async function fetchActionItems(userId: string, legacyUserId: string) {
+    const anfActionItems = await fetchUserANFActionItems(legacyUserId);
     const dateTypeActionItems = await fetchDateTypeActionItems(userId);
     const actionItems = [...anfActionItems, ...dateTypeActionItems]
         .sort((a, b) => b?.overdueDuration - a?.overdueDuration);
     return actionItems as ActionItem[];
-} 
+}
+
+export async function fetchFolderActionItems(userId: string, taskIds: string[]) {
+    const anfActionItems = await fetchSpaceItemANFActionItems(taskIds);
+    const dateTypeActionItems = await fetchSpaceItemDateTypeActionItems(userId, taskIds);
+    const actionItems = [...anfActionItems, ...dateTypeActionItems]
+        .sort((a, b) => b?.overdueDuration - a?.overdueDuration);
+    return actionItems as ActionItem[];
+}

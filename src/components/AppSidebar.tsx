@@ -1,6 +1,6 @@
 'use client'
 
-import { User, Satellite, ChevronDown, BookOpen, ShieldUser } from "lucide-react";
+import { User, Satellite, ChevronDown, BookOpen, ShieldUser, Share2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +25,11 @@ const tmcaachildren = [
     title: "Analytics by Space",
     url: "/space",
     icon: Satellite,
+  },
+  {
+    title: "Analytics by Shared with me",
+    url: "/shared-items",
+    icon: Share2,
   },
   {
     title: "Analytics by User",
@@ -114,14 +119,17 @@ const AppSidebar = (props: { isAdmin: boolean }) => {
 
                         <DropdownMenuContent side="right" align="start" className="min-w-56">
                           <div className="px-2 py-1 text-sm font-semibold">{item.title}</div>
-                          {item.children.map((child) => (
-                            <DropdownMenuItem key={child.title} asChild>
-                              <Link href={child.url} className="flex items-center gap-2">
-                                <child.icon className="h-4 w-4" />
-                                <span>{child.title}</span>
-                              </Link>
-                            </DropdownMenuItem>
-                          ))}
+                          {item.children.map((child) => {
+                            if (child.restricted && !props.isAdmin) return null;
+                            return (
+                              <DropdownMenuItem key={child.title} asChild>
+                                <Link href={child.url} className="flex items-center gap-2">
+                                  <child.icon className="h-4 w-4" />
+                                  <span>{child.title}</span>
+                                </Link>
+                              </DropdownMenuItem>
+                            )
+                          })}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </SidebarMenuItem>

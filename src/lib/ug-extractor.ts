@@ -4,6 +4,7 @@ import { ApiWrikeUser, ApiWrikeUserGroup, WrikeApiContactsResponse, WrikeApiUser
 import { AxiosRequestConfig } from "axios";
 import { axiosRequest, getHeaderConfig } from "@/lib/axios";
 import prisma from "@/lib/db";
+import { chunkArray } from "./utils";
 
 async function fetchUserGroups(config: AxiosRequestConfig | undefined): Promise<ApiWrikeUserGroup[]> {
     const res = await axiosRequest<WrikeApiUserGroupResponse>("GET", `/groups`, undefined, config);
@@ -32,22 +33,18 @@ export async function getRoleOptions(): Promise<Map<string, string[]>> {
     const ugData = await cachedFetchUserGroups(config);
     const GROU = ugData.filter((ug: ApiWrikeUserGroup) => ug.title === 'GROU')[0];
     const companies = ugData.filter((ug: ApiWrikeUserGroup) => GROU.childIds.includes(ug.id));
+    const ugMap = new Map(ugData.map(ug => [ug.id, ug]));
     const companyRoles = new Map<string, string[]>();
     for (const company of companies) {
         const roleIds = company.childIds;
-        const roles = ugData.filter(ug => roleIds.includes(ug.id)).map(ug => ug.title);
+        // no need to go further down
+        const subRoleIds = roleIds.map(i => ugMap.get(i)?.childIds);
+        const allRoleIds = [...roleIds, ...subRoleIds];
+        const roles = ugData.filter(ug => allRoleIds.includes(ug.id)).map(ug => ug.title);
         companyRoles.set(company.title, roles);
     }
 
     return companyRoles;
-}
-
-function chunkArray<T>(array: T[], size: number): T[][] {
-    const chunks: T[][] = [];
-    for (let i = 0; i < array.length; i += size) {
-        chunks.push(array.slice(i, i + size));
-    }
-    return chunks;
 }
 
 const getAllChildGroupIds = (
@@ -76,7 +73,7 @@ const getAllChildGroupIds = (
     return result;
 };
 
-async function retrieveUserData(memberIds: string[]) {
+export async function retrieveUserData(memberIds: string[]) {
     const userChunks = chunkArray(memberIds, 100);
     const userResponses = await Promise.all(
         userChunks.map((chunk) =>
@@ -105,7 +102,7 @@ async function fetchUsersFromUGTree(userGroups: ApiWrikeUserGroup[], parentGroup
 
 async function getCEOSubordinates(userId: string, userGroups: ApiWrikeUserGroup[]): Promise<ApiWrikeUser[]> {
     const ceoUserGroups = userGroups.filter(ug => ug.title.endsWith("CEO"))
-    const ceoOf = ceoUserGroups.filter(ug => ug.memberIds.includes(userId))
+    const ceoOf = ceoUserGroups.filter(ug => ug.memberIds.includes(userId) || ug.id === 'KX7XJVBV')
     if (!ceoOf || ceoOf.length === 0) return [];
     const subordinates = [];
     for (const ceoGroup of ceoOf) {
@@ -139,11 +136,12 @@ async function getCustomSubordinates(userId: string, userGroups: ApiWrikeUserGro
 export async function getSubordinates(userId: string) {
     const config = await getHeaderConfig();
     const userGroups = await cachedFetchUserGroups(config);
+    const sessionUser = await retrieveUserData([userId]);
     const ceoUsers = await getCEOSubordinates(userId, userGroups);
     const customAccessibleUsers = await getCustomSubordinates(userId, userGroups);
     return Array.from(
         new Map(
-            [...ceoUsers, ...customAccessibleUsers].map(u => [u.id, u])
+            [...ceoUsers, ...customAccessibleUsers, ...sessionUser].map(u => [u.id, u])
         ).values()
     );
 }

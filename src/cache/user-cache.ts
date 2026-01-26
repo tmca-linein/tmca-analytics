@@ -8,6 +8,8 @@ const parentByChild = new Map<string, string[]>();
 const ancestorsCache = new Map<string, string[]>();
 const TTL_MS = 60 * 60 * 1000;
 let ugCacheExpires: number;
+let userCacheExpires: number;
+let ancestorsCacheExpires: number;
 
 type HttpStatus = number;
 
@@ -43,7 +45,8 @@ async function fetchUserDisplayName(id: string): Promise<string | null> {
     try {
         const res = await axiosRequest<WrikeApiContactsResponse>("GET", `/users/${id}`);
         const user = res?.data?.data?.[0];
-        if (!user || user.deleted) return ""; // known "empty"
+        if (!user) return ""; // known "empty"
+        if (user.deleted) return `(D) ${user.firstName} ${user.lastName}`
         return `${user.firstName} ${user.lastName}`;
     } catch (e: unknown) {
         if (isNotFound(e)) return null;
@@ -63,7 +66,13 @@ export async function getUserName(id: string): Promise<string> {
     if (!id) return "";
 
     const cached = userCache.get(id);
-    if (cached !== undefined) return cached;
+    if (cached !== undefined) {
+        if (!cached.startsWith('(D)') && !cached.startsWith('(R)')) {
+            return cached;
+        } else {
+            return "";
+        }
+    }
 
     const pending = inflight.get(id);
     if (pending) return pending;
@@ -93,19 +102,40 @@ export async function getUserName(id: string): Promise<string> {
     return p;
 }
 
+export async function cacheUsernames() {
+    const now = Date.now();
+
+    if (!!userCacheExpires && userCacheExpires > now)
+        return; // cache is valid
+
+    userCache.clear();
+    const res = await axiosRequest<WrikeApiContactsResponse>("GET", `/contacts`);
+    if (!res) return; // don't cache network failures
+    const contacts = res?.data?.data;
+    for (const c of contacts) {
+        userCache.set(c.id, c.deleted ? `(D) ${c.firstName} ${c.lastName}` : c.type === 'Robot' ? `(R) ${c.firstName} ${c.lastName}` : `${c.firstName} ${c.lastName}`);
+    }
+
+    const resG = await axiosRequest<WrikeApiUserGroupResponse>("GET", `/groups`);
+    if (!resG) return; // don't cache network failures
+    const groups = resG?.data?.data;
+    for (const g of groups) {
+        userCache.set(g.id, g.title ?? "");
+    }
+
+    userCacheExpires = Date.now() + TTL_MS;
+}
+
 export async function cacheAncestorMappings() {
     const now = Date.now();
 
     if (!!ugCacheExpires && ugCacheExpires > now)
         return; // cache is valid
 
-    // update cache with latest data
     parentByChild.clear();
     const res = await axiosRequest<WrikeApiUserGroupResponse>("GET", `/groups`);
-    if (!res) return; // don't cache network failures
+    if (!res) return;
     const groups = res?.data?.data;
-
-    // build relationship tree
     for (const g of groups) {
         const parents = g.parentIds ?? [];
         parentByChild.set(g.id, parents.slice());
@@ -123,6 +153,12 @@ export async function cacheAncestorMappings() {
 }
 
 export function getAllParents(id: string): string[] {
+    const now = Date.now();
+    if (!ancestorsCacheExpires || ugCacheExpires < now) {
+        ancestorsCache.clear();
+        ancestorsCacheExpires = Date.now() + TTL_MS;
+    }
+
     const cached = ancestorsCache.get(id);
     if (cached) return cached;
 

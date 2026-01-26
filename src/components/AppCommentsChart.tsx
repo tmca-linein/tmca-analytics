@@ -6,7 +6,7 @@ import { SelectFilterDef } from "@/components/AppLineChart";
 
 export type CommentsRow = { date: string; comments: number };
 
-export default function WrikeChartClient({ data }: { data: CommentsRow[] }) {
+export default function CommentsChart({ data }: { data: CommentsRow[] }) {
     const filters: SelectFilterDef<CommentsRow>[] = [
         {
             id: "timeRange",

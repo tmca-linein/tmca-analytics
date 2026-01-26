@@ -45,8 +45,12 @@
   --color-custom-color: var(--custom-color);
   --color-warning: var(--warning);
   --color-space: var(--space);
+  --color-space-hover: var(--space-hover);
   --color-folder: var(--folder);
+  --color-folder-hover: var(--folder-hover);
   --color-project: var(--project);
+  --color-project-hover: var(--project-hover);
+  --color-warning-hover: var(--warning-hover);
 }
 
 :root {
@@ -85,9 +89,13 @@
   --sidebar-ring: oklch(0.705 0.015 286.067);
   --custom-color: oklch(86.366% 0.01379 286.01);
   --warning: oklch(0.828 0.189 84.429);
+  --warning-hover: oklch(0.79 0.200 84.429);
   --space: oklch(0.971 0.027 254.64);
+  --space-hover: oklch(0.94 0.032 254.64);
   --folder: oklch(0.977 0.021 150.48);
+  --folder-hover: oklch(0.945 0.026 150.48);
   --project: oklch(0.972 0.014 293.54);
+  --project-hover: oklch(0.94 0.018 293.54);
 }
 
 .dark {
@@ -125,9 +133,13 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --custom-color: oklch(86.366% 0.01379 286.01);
   --warning: oklch(0.828 0.189 84.429);
+  --warning-hover: oklch(0.79 0.200 84.429);
   --space: oklch(0.28 0.09 254.6);
   --folder: oklch(0.28 0.07 150.5);
   --project: oklch(0.28 0.08 293.5);
+  --space-hover: oklch(0.36 0.10 254.6);
+  --folder-hover: oklch(0.36 0.08 150.5);
+  --project-hover: oklch(0.36 0.09 293.5);
 }
 
 @layer base {

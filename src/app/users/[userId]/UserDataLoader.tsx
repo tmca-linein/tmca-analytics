@@ -1,61 +1,60 @@
-import UserStatistics from '@/app/users/[userId]/UserStatistics';
-import { UserActivityWindow } from '@/app/users/[userId]/UserActivityWindow';
+import ItemStatistics from '@/components/AppItemStatistics';
+import { AppActivityWindow } from '@/components/AppActivityWindow';
 import { getUserIdMapping } from "@/cache/legacyId-cache";
-import CommentsChart, { CommentsRow } from './CommentsChart';
-import AnfDuration, { AnfDurationRow } from './AnfDuration';
-import { fetchANFData } from '@/stats/anfRetriever';
-import { fetchDailyActivity } from '@/stats/dailyActivityRetriever';
-import { fetchCommentStats } from '@/stats/commentsRetriever';
-import { UserActionItems } from "@/app/users/[userId]/UserActionItems";
+import CommentsChart, { CommentsRow } from '../../../components/AppCommentsChart';
+import AnfDuration from '../../../components/AppAnfDuration';
+import { fetchHistoricalANFData, fetchUserANFActivity, fetchUserANFDuration } from '@/stats/anfRetriever';
+import { fetchTaskDailyActivity } from '@/stats/dailyActivityRetriever';
+import { fetchHistoricalCommentData, fetchUserCommentActivity } from '@/stats/commentsRetriever';
+import { AppActionItems } from "@/components/AppActionItems";
 import { fetchActionItems } from "@/stats/actionItemsRetriever";
-import AnfStats, { AnfStatsRow } from "./AnfStatsChart";
+import AnfStats, { AnfStatsRow } from "../../../components/AppAnfStatsChart";
+import { ANFDuration } from '@/types/stats';
 
 export default async function UserDataLoader(props: {
     userId: string;
 }) {
     const { userId } = await props;
-    const userIdsMapping = await getUserIdMapping();
-    const legacyMappings = userIdsMapping.filter(m => m.id === userId)
-    const legacyUserId = legacyMappings.length > 0 ? legacyMappings[0].apiV2Id : undefined;
-    // const { nainItems, dtmbfItems } = await fetchTaskAttentionItems(userId);
+    const { v4ToLegacy } = await getUserIdMapping();
+    const legacyUserId = String(v4ToLegacy.get(userId));
     const [
-        { commentActivity, historicalCommentData },
+        commentActivity,
+        historicalCommentData,
         latestActivity,
-        { anfActivity, historicalANFData, anfDuration },
+        anfActivity,
+        historicalANFData,
+        anfDuration,
         actionItems
     ] = await Promise.all([
-        fetchCommentStats(userId),
-        fetchDailyActivity(legacyUserId, userId),
-        fetchANFData(userId, legacyUserId),
+        fetchUserCommentActivity(userId),
+        fetchHistoricalCommentData(userId, []),
+        fetchTaskDailyActivity(legacyUserId, userId),
+        fetchUserANFActivity(legacyUserId),
+        fetchHistoricalANFData(legacyUserId, []),
+        fetchUserANFDuration(legacyUserId),
         fetchActionItems(userId, legacyUserId)
     ]);
 
     return (
         <>
             <div className="bg-primary-foreground p-4 rounded-lg">
-                <UserActivityWindow items={latestActivity} />
+                <AppActivityWindow items={latestActivity} />
             </div>
             <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-                <UserActionItems items={actionItems} />
+                <AppActionItems items={actionItems} type="user" />
             </div>
             <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
                 <AnfStats anfData={historicalANFData as AnfStatsRow[]} />
             </div>
             <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-                <AnfDuration anfData={anfDuration as AnfDurationRow[]} />
+                <AnfDuration anfData={anfDuration as ANFDuration[]} />
             </div>
             <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
                 <CommentsChart data={historicalCommentData as CommentsRow[]} />
             </div>
             <div className="bg-primary-foreground p-4 rounded-lg lg:col-span-2 xl:col-span-1 2xl:col-span-2">
-                <UserStatistics anfActivity={anfActivity} commentActivity={commentActivity} />
+                <ItemStatistics title="User statistics" anfActivity={anfActivity} commentActivity={commentActivity} />
             </div>
-            {/* <div className="bg-primary-foreground p-4 rounded-lg">
-                <AppCalendarView title="📍Next attention needed from assignee" items={nainItems as AttentionItem[]} />
-            </div>
-            <div className="bg-primary-foreground p-4 rounded-lg">
-                <AppCalendarView title="📍Date that must be finished" items={dtmbfItems as AttentionItem[]} />
-            </div> */}
         </>
     )
 }

@@ -1,5 +1,5 @@
 import UserDescription from '@/app/users/[userId]/UserDescription';
-import UserDataSkeleton from './_skeletons';
+import DataLoadingSkeleton from '@/components/AppSkeleton';
 import UserDataLoader from './UserDataLoader';
 import { axiosRequest } from "@/lib/axios";
 import { Suspense } from "react";
@@ -22,7 +22,7 @@ export default async function UserDetailsPage({
         <>
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4">
                 <div className="bg-primary-foreground p-4 rounded-lg"><UserDescription user={userDetails} /></div>
-                <Suspense fallback={<div className="bg-primary-foreground p-4 rounded-lg"><UserDataSkeleton /></div>}>
+                <Suspense fallback={<div className="bg-primary-foreground p-4 rounded-lg"><DataLoadingSkeleton /></div>}>
                     <UserDataLoader userId={userId} />
                 </Suspense>
             </div>

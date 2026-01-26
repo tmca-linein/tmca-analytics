@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function UserDataSkeleton() {
+export default function DataLoadingSkeleton() {
   return (
     <div className="bg-sidebar p-4 rounded-lg space-y-3">
       <div className="flex items-center gap-3">

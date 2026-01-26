@@ -70,7 +70,6 @@ export const mainAuthConfig: NextAuthOptions = {
                     });
 
                     const data = await response.json();
-                    // console.log("🔍 Wrike token exchange response:", data);
 
                     if (!response.ok || !data.access_token) {
                         throw new Error(data.error_description || "Failed to fetch access token");
@@ -82,14 +81,12 @@ export const mainAuthConfig: NextAuthOptions = {
             userinfo: {
                 url: "https://www.wrike.com/api/v4/contacts?me=true",
                 async request({ tokens }) {
-                    // console.log("🔍 Wrike token prefetch:", tokens)
                     const res = await fetch("https://www.wrike.com/api/v4/contacts?me=true", {
                         headers: {
                             Authorization: `Bearer ${tokens.access_token}`,
                         },
                     })
                     const data = await res.json()
-                    // console.log("🔍 Wrike userinfo response:", data);
                     const user = data.data?.[0] ?? {}
                     return {
                         id: user.id,

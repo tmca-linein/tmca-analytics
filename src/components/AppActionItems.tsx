@@ -1,7 +1,7 @@
 "use client";
 
 import { Pin, CalendarPlus, CalendarCheck2, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import clsx from "clsx";
 
 export type ActionItem = {
@@ -15,8 +15,8 @@ export type ActionItem = {
     link: string;
 };
 
-export function UserActionItems(
-    props: { items: ActionItem[] },
+export function AppActionItems(
+    props: { items: ActionItem[], type: string },
 ) {
     return (
         <Card className="h-full w-full rounded-3xl border bg-background">
@@ -25,11 +25,11 @@ export function UserActionItems(
                 <CardTitle className="text-lg font-semibold">
                     <div className="flex items-center gap-2">
                         <AlertTriangle className="h-4 w-4 text-orange-500" />
-                        <span>User action items</span>
+                        <span>Action items</span>
                     </div>
                 </CardTitle>
                 <CardDescription>
-                    Displays unresolved user action items: <br /> 📍Answer is needed from (top 10 longest), 📍Next attention needed from assignee (all), 📍Date that must be finished (all)
+                    Displays unresolved {props.type} action items: <br /> 📍Answer is needed from (top 10 longest), 📍Next attention needed from assignee (all), 📍Date that must be finished (all)
                 </CardDescription>
             </CardHeader>
 
@@ -39,7 +39,7 @@ export function UserActionItems(
                         {props.items.map((item) => {
                             const overdue = item.overdueDuration > 24 ? `${(item.overdueDuration / 24).toFixed(1)} days` : Math.round(item.overdueDuration * 10) / 10;
                             return (
-                                <div key={item.id} className="flex gap-4 py-4">
+                                <div key={item.id + item.type} className="flex gap-4 py-4">
                                     {/* Icon */}
                                     <div className="flex h-8 w-8 items-center justify-center rounded-full border bg-card shadow-sm">
                                         {item.type === "ANF" ? (

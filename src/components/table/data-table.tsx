@@ -174,7 +174,11 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
                     gridTemplateColumns,
                     top: `${offset}px`
                   }}
-                  onClick={() => onRowClicked?.(row.original.id ?? '')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onRowClicked?.(row.original.id ?? '')
+                  }}
                   title={row.original.warning}
                 >
                   {row.getVisibleCells().map(cell => {

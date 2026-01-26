@@ -1,3 +1,5 @@
+import { DisplayItemMetrics } from "./stats";
+
 export interface WrikeApiSpaceResponse {
     data: WrikeSpace[];
 }
@@ -11,11 +13,12 @@ export interface WrikeApiFolderResponse {
 }
 
 export interface WrikeApiTasksResponse {
-    data: WrikeTask[]
+    data: WrikeTask[];
+    nextPageToken?: string;
 }
 
 export type SpaceItem = {
-    itemId: string;
+    id: string;
     itemName: string;
     itemType: "Space" | "Project" | "Folder" | "Task";
     author: string;
@@ -27,7 +30,7 @@ export type SpaceItem = {
     sharedIds: string[];
     subRows: SpaceItem[];
     parentId?: string;
-};
+} & DisplayItemMetrics;
 
 export type WrikeSpace = {
     id: string;
@@ -58,7 +61,7 @@ export type WrikeFolder = {
     permalink: string;
     workflowId: string;
     metadata: string[];
-    customFields: string[];
+    customFields: { id: string; value: string }[];
     project?: WrikeFolderTreeProject
 }
 
@@ -78,6 +81,7 @@ export type WrikeTask = {
     customStatusId: string;
     permalink: string;
     priority: string;
+    parentIds?: string[];
     customFields?: { id: string, value: string }[];
 }
 

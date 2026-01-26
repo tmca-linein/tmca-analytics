@@ -1,12 +1,11 @@
 import { getUserName } from '@/cache/user-cache';
-import { ActivityItem } from '@/app/users/[userId]/UserActivityWindow';
-import { ANFEvent } from '@/generated/prisma';
+import { ActivityItem } from '@/components/AppActivityWindow';
+import { ANFEvent, CommentEvent } from '@/generated/prisma';
 import { axiosRequest } from '@/lib/axios';
 import prisma from '@/lib/db';
-import { WrikeApiTasksResponse } from '@/types/wrikeItem';
+import { chunkArray } from '@/lib/utils';
+import { WrikeApiTasksResponse, WrikeTask } from '@/types/wrikeItem';
 import { startOfDay, endOfDay } from 'date-fns';
-import pLimit from 'p-limit';
-const limit = pLimit(5);
 
 type TaskResult<T> =
     { ok: true; value: T }
@@ -23,8 +22,69 @@ function with404Fallback<T>(p: Promise<T>): Promise<TaskResult<T>> {
         });
 }
 
-export async function fetchDailyActivity(legacyUserId: string | undefined, userId: string | undefined) {
+async function buildActivities(lastANF: ANFEvent[], lastComment: CommentEvent[]) {
+    const tasksToFetch = [...lastANF.map(a => a.wrikeItemId), ...lastComment.map(a => a.wrikeItemId)]
+    const taskChunks = chunkArray(tasksToFetch, 100);
+    const taskChunkResponses = await Promise.all(
+        taskChunks.map((chunk) =>
+            with404Fallback(
+                axiosRequest<WrikeApiTasksResponse>("GET", `/tasks/${chunk.join(",")}`)
+            )
+        )
+    );
 
+    const tasks: WrikeTask[] = taskChunkResponses.flatMap(r =>
+        r.ok ? (r.value.data.data as WrikeTask[]) : []
+    );
+
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+    const anfActivities = await Promise.all(
+        lastANF.map(async (value) => {
+            const task = taskById.get(value.wrikeItemId);
+            const taskData = task
+                ? task
+                : { title: "***Task not found or not authorised***", permalink: "#" };
+
+            return {
+                id: value.id,
+                title: taskData?.title ?? "(task)",
+                date: value.eventDate,
+                description: `${await getUserName(value.authorUserId)} ${value.state === "ADDED"
+                    ? "added user to ANF field."
+                    : "removed user from ANF field."
+                    }`,
+                type: "ANF",
+                link: taskData.permalink
+            };
+        })
+    );
+
+    const commentActivities = await Promise.all(
+        lastComment.map(async (value) => {
+            const task = taskById.get(value.wrikeItemId);
+            const taskData = task
+                ? task
+                : { title: "***Task not found or not authorised***", permalink: "#" };
+
+            return {
+                id: value.id,
+                title: taskData?.title ?? "(task)",
+                date: value.eventDate,
+                description: `${await getUserName(value.userId)} added a comment.`,
+                type: "comment",
+                link: taskData.permalink
+            };
+        })
+    );
+
+    const dayActivities = [...anfActivities, ...commentActivities]
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .map(a => ({ ...a, date: a.date.toISOString() })) as ActivityItem[];
+
+    return dayActivities;
+}
+
+export async function fetchTaskDailyActivity(legacyUserId: string, userId: string) {
     const now = new Date();
     const todayStart = startOfDay(now);
     const todayEnd = endOfDay(now);
@@ -38,7 +98,7 @@ export async function fetchDailyActivity(legacyUserId: string | undefined, userI
         ORDER BY "eventDate" DESC;
     `;
 
-    const lastComment = await prisma.$queryRaw<ANFEvent[]>`
+    const lastComment = await prisma.$queryRaw<CommentEvent[]>`
         SELECT
         *
         FROM "CommentEvent"
@@ -47,64 +107,32 @@ export async function fetchDailyActivity(legacyUserId: string | undefined, userI
         ORDER BY "eventDate" DESC;
     `;
 
-    // wrike returns empty array if any element is unauthorized for /tasks/task1,task2,...
-    // this is slower workaround
-    const anfTaskPromises = lastANF.map(value =>
-        axiosRequest<WrikeApiTasksResponse>("GET", `/tasks/${value.wrikeItemId}`)
-    );
+    const dayActivities = await buildActivities(lastANF, lastComment);
+    return dayActivities;
+}
 
-    const commentTaskPromises = lastComment.map(value =>
-        axiosRequest<WrikeApiTasksResponse>("GET", `/tasks/${value.wrikeItemId}`)
-    );
+export async function fetchFolderDailyActivity(taskIds: string[]) {
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const todayEnd = endOfDay(now);
+    const lastANF = await prisma.$queryRaw<ANFEvent[]>`
+        SELECT
+        *
+        FROM "ANFEvent"
+        WHERE "wrikeItemId" = ANY(${taskIds})
+        AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd}
+        ORDER BY "eventDate" DESC;
+    `;
 
-    const [anfTaskResponses, commentTaskResponses] = await Promise.all([
-        Promise.all(anfTaskPromises.map(with404Fallback)),
-        Promise.all(commentTaskPromises.map(with404Fallback)),
-    ]);
+    const lastComment = await prisma.$queryRaw<CommentEvent[]>`
+        SELECT
+        *
+        FROM "CommentEvent"
+        WHERE "wrikeItemId" = ANY(${taskIds})
+        AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd}
+        ORDER BY "eventDate" DESC;
+    `;
 
-    const anfActivities = await Promise.all(
-        lastANF.map((value, index) => limit(
-            async () => {
-                const taskDataResponse = anfTaskResponses[index]
-                const taskData = taskDataResponse.ok ?
-                    taskDataResponse.value.data.data[0] :
-                    (taskDataResponse.status === 404 ?
-                        { title: '***You are not authorised to view this task***', permalink: '#' } :
-                        { title: "Error occurred while loading the task!", permalink: '#' });
-                return {
-                    id: value.id,
-                    title: taskData?.title ?? "(task)",
-                    date: value.eventDate,
-                    description: `${await getUserName(value.authorUserId)} ${value.state === "ADDED" ? "added user to ANF field." : "removed user from ANF field."
-                        }`,
-                    type: "ANF",
-                    link: taskData.permalink
-                };
-            })
-        )
-    );
-
-    const commentActivities = lastComment.map((value, index) => {
-        const taskDataResponse = commentTaskResponses[index]
-        const taskData = taskDataResponse.ok ?
-            taskDataResponse.value.data.data[0] :
-            (taskDataResponse.status === 404 ?
-                { title: '***You are not authorised to view this task***', permalink: '#' } :
-                { title: "Error occurred while loading the task!", permalink: '#' });
-        return {
-            id: value.id,
-            title: taskData?.title ?? "(task)",
-            date: value.eventDate,
-            description: "User added a comment.",
-            type: "comment",
-            link: taskData.permalink
-        };
-    });
-
-    const dayActivities = [...anfActivities, ...commentActivities]
-        .sort((a, b) => b.date.getTime() - a.date.getTime())
-        .map(a => ({ ...a, date: a.date.toISOString() })) as ActivityItem[];
-
-
+    const dayActivities = await buildActivities(lastANF, lastComment);
     return dayActivities;
 }

@@ -8,7 +8,7 @@ import { authConfig } from "./auth";
 async function fetchWrikeAdmin(userId: string) {
     const res = await axiosRequest<WrikeApiContactsResponse>("GET", `/users/${userId}`);
     const user = res.data.data?.[0];
-    return Boolean(user?.profiles?.some(p => p?.accountId === process.env.ACCOUNT_ID && (p?.admin || p.owner))) || user.id === process.env.DEV_ADMIN;
+    return Boolean(user?.profiles?.some(p => (p?.accountId === process.env.ACCOUNT_ID) && (p?.admin || p.owner)) || user.id === process.env.DEV_ADMIN);
 }
 
 export async function getAdminStatus() {

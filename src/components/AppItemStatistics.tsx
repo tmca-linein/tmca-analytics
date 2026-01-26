@@ -1,14 +1,16 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
+import { UserANFActivity, UserCommentActivity } from "@/types/stats";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 
-type UserStatisticsProps = {
-    anfActivity: Record<string, number>,
-    commentActivity: Record<string, number>
+type StatisticsProps = {
+    title: string;
+    anfActivity: UserANFActivity,
+    commentActivity: UserCommentActivity
 }
 
-const UserStatistics = (
-    props: UserStatisticsProps,
+const AppItemStatistics = (
+    props: StatisticsProps,
 ) => {
-    const { anfActivity, commentActivity } = props;
+    const { title, anfActivity, commentActivity } = props;
     const { addedToday, addedWeek, addedMonth, removedToday, removedWeek, removedMonth } = anfActivity;
     const { countToday, countWeek, countMonth, avgWordCountToday, avgWordCountWeek, avgWordCountMonth } = commentActivity;
     return (
@@ -16,7 +18,7 @@ const UserStatistics = (
             <Card className=" w-full rounded-3xl border shadow-sm">
                 <CardHeader className="flex items-center gap-2 space-y-0 border-b sm:flex-row">
                     <div className="grid flex-1 gap-1">
-                        <CardTitle>📈 User statistics</CardTitle>
+                        <CardTitle>📈 {title}</CardTitle>
                         <CardDescription>
                             Displays cumulative performance measures
                         </CardDescription>
@@ -90,4 +92,4 @@ const UserStatistics = (
     )
 }
 
-export default UserStatistics;
+export default AppItemStatistics;

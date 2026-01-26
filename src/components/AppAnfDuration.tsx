@@ -2,10 +2,12 @@
 
 import AppLineChart, { SelectFilterDef } from "@/components/AppLineChart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { sameMoment, startOfMonthUTC, startOfQuarterUTC, startOfWeekMondayUTC } from "@/lib/utils";
+import { ANFDuration } from "@/types/stats";
 import { useState } from "react";
 
-export type AnfDurationRow = { granularity: string; bucket: string, avgduration: number, topfiveavgduration: number, transitions_count: number };
-const FILTERS: SelectFilterDef<AnfDurationRow>[] = [
+
+const FILTERS: SelectFilterDef<ANFDuration>[] = [
     {
         id: "granularity",
         label: "Granularity",
@@ -21,36 +23,11 @@ const FILTERS: SelectFilterDef<AnfDurationRow>[] = [
     },
 ];
 
-function startOfWeekMondayUTC(d = new Date()) {
-    const x = new Date(d);
-    const day = x.getUTCDay() || 7;
-    x.setUTCDate(x.getUTCDate() - day + 1);
-    x.setUTCHours(0, 0, 0, 0);
-    return x;
-}
+export default function AnfDuration({ anfData }: { anfData: ANFDuration[] }) {
 
-function startOfMonthUTC(d = new Date()) {
-    const x = new Date(d);
-    x.setUTCDate(1);
-    x.setUTCHours(0, 0, 0, 0);
-    return x;
-}
-
-function startOfQuarterUTC(d = new Date()) {
-    const x = new Date(d);
-    const m = x.getUTCMonth();
-    const qStartMonth = m - (m % 3);
-    x.setUTCMonth(qStartMonth, 1);
-    x.setUTCHours(0, 0, 0, 0);
-    return x;
-}
-const sameMoment = (aIso: string, bIso: string) =>
-    Date.parse(aIso) === Date.parse(bIso);
-
-export default function AnfDuration({ anfData }: { anfData: AnfDurationRow[] }) {
-    const weekData = anfData.filter(ad => (ad.granularity === "week") && (sameMoment(ad.bucket, startOfWeekMondayUTC().toISOString())))[0];
-    const monthData = anfData.filter(ad => (ad.granularity === "month") && (sameMoment(ad.bucket, startOfMonthUTC().toISOString())))[0];
-    const quarterData = anfData.filter(ad => (ad.granularity === "quarter") && (sameMoment(ad.bucket, startOfQuarterUTC().toISOString())))[0];
+    const weekData = anfData.find(ad => (ad.granularity === "week") && (sameMoment(ad.bucket, startOfWeekMondayUTC().toISOString())));
+    const monthData = anfData.find(ad => (ad.granularity === "month") && (sameMoment(ad.bucket, startOfMonthUTC().toISOString())));
+    const quarterData = anfData.find(ad => (ad.granularity === "quarter") && (sameMoment(ad.bucket, startOfQuarterUTC().toISOString())));
     const [useGraph, setUseGraph] = useState(false);
     const comp = useGraph ? (
         <AppLineChart
@@ -91,48 +68,72 @@ export default function AnfDuration({ anfData }: { anfData: AnfDurationRow[] }) 
                     </CardHeader>
                     <CardContent className="pb-4">
                         <p className="mt-4 text-sm text-muted-foreground">This week</p>
-                        <div className="grid grid-cols-3 rounded-2xl border bg-muted/40 text-center py-4">
+                        <div className="grid grid-cols-5 rounded-2xl border bg-muted/40 text-center py-4">
                             <div className="flex flex-col gap-1">
                                 <span className="text-base font-semibold">{weekData?.avgduration ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Avg. duration (h)</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{weekData?.topfiveavgduration ?? 0}</span>
-                                <span className="text-xs text-muted-foreground">Top 5 (longest) transition avg. duration (h)</span>
+                                <span className="text-xs text-muted-foreground">Avg. duration (h) of top 5 (longest) transitions</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{weekData?.transitions_count ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Transition count</span>
                             </div>
+                            <div className="flex flex-col gap-1 border-x">
+                                <span className="text-base font-semibold">{weekData?.overdue_count ?? 0}</span>
+                                <span className="text-xs text-muted-foreground">Overdue transition count</span>
+                            </div>
+                            <div className="flex flex-col gap-1 ">
+                                <span className="text-base font-semibold">{weekData?.avgoverduehours ?? 0}</span>
+                                <span className="text-xs text-muted-foreground">Overdue avg. duration</span>
+                            </div>
                         </div>
                         <p className="mt-4 text-sm text-muted-foreground">This month</p>
-                        <div className="grid grid-cols-3 rounded-2xl border bg-muted/40 text-center py-4">
+                        <div className="grid grid-cols-5 rounded-2xl border bg-muted/40 text-center py-4">
                             <div className="flex flex-col gap-1">
                                 <span className="text-base font-semibold">{monthData?.avgduration ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Avg. duration (h)</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{monthData?.topfiveavgduration ?? 0}</span>
-                                <span className="text-xs text-muted-foreground">Top 5 (longest) transition avg. duration (h)</span>
+                                <span className="text-xs text-muted-foreground">Avg. duration (h) of top 5 (longest) transitions</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{monthData?.transitions_count ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Transition count</span>
                             </div>
+                            <div className="flex flex-col gap-1 border-x">
+                                <span className="text-base font-semibold">{monthData?.overdue_count ?? 0}</span>
+                                <span className="text-xs text-muted-foreground">Overdue transition count</span>
+                            </div>
+                            <div className="flex flex-col gap-1 ">
+                                <span className="text-base font-semibold">{monthData?.avgoverduehours ?? 0}</span>
+                                <span className="text-xs text-muted-foreground">Overdue avg. duration</span>
+                            </div>
                         </div>
                         <p className="mt-4 text-sm text-muted-foreground">This quarter</p>
-                        <div className="grid grid-cols-3 rounded-2xl border bg-muted/40 text-center py-4">
+                        <div className="grid grid-cols-5 rounded-2xl border bg-muted/40 text-center py-4">
                             <div className="flex flex-col gap-1">
                                 <span className="text-base font-semibold">{quarterData?.avgduration ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Avg. duration (h)</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{quarterData?.topfiveavgduration ?? 0}</span>
-                                <span className="text-xs text-muted-foreground">Top 5 (longest) transition avg. duration (h)</span>
+                                <span className="text-xs text-muted-foreground">Avg. duration (h) of top 5 (longest) transitions</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
                                 <span className="text-base font-semibold">{quarterData?.transitions_count ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Transition count</span>
+                            </div>
+                            <div className="flex flex-col gap-1 border-x">
+                                <span className="text-base font-semibold">{quarterData?.overdue_count ?? 0}</span>
+                                <span className="text-xs text-muted-foreground">Overdue transition count</span>
+                            </div>
+                            <div className="flex flex-col gap-1 ">
+                                <span className="text-base font-semibold">{quarterData?.avgoverduehours ?? 0}</span>
+                                <span className="text-xs text-muted-foreground">Overdue avg. duration</span>
                             </div>
                         </div>
                     </CardContent>
