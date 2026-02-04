@@ -1,14 +1,14 @@
-import ItemStatistics from '@/components/AppItemStatistics';
-import { AppActivityWindow } from '@/components/AppActivityWindow';
+import ItemStatistics from '@/components/stats/AppItemStatistics';
+import { AppActivityWindow } from '@/components/stats/AppActivityWindow';
 import { getUserIdMapping } from "@/cache/legacyId-cache";
-import CommentsChart, { CommentsRow } from '../../../components/AppCommentsChart';
-import AnfDuration from '../../../components/AppAnfDuration';
+import CommentsChart, { CommentsRow } from '../../../components/stats/AppCommentsChart';
+import AnfDuration from '../../../components/stats/AppAnfDuration';
 import { fetchHistoricalANFData, fetchUserANFActivity, fetchUserANFDuration } from '@/stats/anfRetriever';
 import { fetchTaskDailyActivity } from '@/stats/dailyActivityRetriever';
 import { fetchHistoricalCommentData, fetchUserCommentActivity } from '@/stats/commentsRetriever';
-import { AppActionItems } from "@/components/AppActionItems";
-import { fetchActionItems } from "@/stats/actionItemsRetriever";
-import AnfStats, { AnfStatsRow } from "../../../components/AppAnfStatsChart";
+import { AppActionItems } from "@/components/stats/AppActionItems";
+import { fetchUserActionItems } from "@/stats/actionItemsRetriever";
+import AnfStats, { AnfStatsRow } from "../../../components/stats/AppAnfStatsChart";
 import { ANFDuration } from '@/types/stats';
 
 export default async function UserDataLoader(props: {
@@ -32,7 +32,7 @@ export default async function UserDataLoader(props: {
         fetchUserANFActivity(legacyUserId),
         fetchHistoricalANFData(legacyUserId, []),
         fetchUserANFDuration(legacyUserId),
-        fetchActionItems(userId, legacyUserId)
+        fetchUserActionItems(userId, legacyUserId)
     ]);
 
     return (

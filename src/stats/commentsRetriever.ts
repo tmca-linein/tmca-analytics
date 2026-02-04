@@ -1,40 +1,44 @@
 import { Prisma } from "@/generated/prisma";
 import prisma from "@/lib/db";
+import { startOfLastMonthUTC } from "@/lib/utils";
 import { BulkSpaceItemCommentActivity, BulkUserCommentActivity, SpaceItemCommentActivity, UserCommentActivity } from "@/types/stats";
 import { endOfDay, endOfMonth, endOfWeek, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 
 function getCommentWindows(now = new Date()) {
-    const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
-    return { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd };
+  const todayStart = startOfDay(now);
+  const todayEnd = endOfDay(now);
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  const lastMonthStart = startOfLastMonthUTC(now);
+  const lastMonthEnd = startOfMonth(now);
+  return { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd, lastMonthStart, lastMonthEnd };
 }
 
 function commentAggSelect(w: ReturnType<typeof getCommentWindows>) {
-    const { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd } = w;
+  const { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd, lastMonthStart, lastMonthEnd } = w;
 
-    return Prisma.sql`
-    SUM(CASE WHEN "eventDate" BETWEEN ${todayStart} AND ${todayEnd} THEN 1 ELSE 0 END)::int AS "countToday",
+  return Prisma.sql`
+    SUM(CASE WHEN "eventDate" BETWEEN ${todayStart} AND ${todayEnd} THEN 1 ELSE 0 END)::int AS "countDay",
     SUM(CASE WHEN "eventDate" BETWEEN ${weekStart}  AND ${weekEnd}  THEN 1 ELSE 0 END)::int AS "countWeek",
     SUM(CASE WHEN "eventDate" BETWEEN ${monthStart} AND ${monthEnd} THEN 1 ELSE 0 END)::int AS "countMonth",
-    COUNT(*)::int                                                                           AS "countTotal", 
+    SUM(CASE WHEN "eventDate" BETWEEN ${lastMonthStart} AND ${lastMonthEnd} THEN 1 ELSE 0 END)::int AS "countLastMonth", 
 
-    AVG(CASE WHEN "eventDate" BETWEEN ${todayStart} AND ${todayEnd} THEN "wordCount" END)::float AS "avgWordCountToday",
+    AVG(CASE WHEN "eventDate" BETWEEN ${todayStart} AND ${todayEnd} THEN "wordCount" END)::float AS "avgWordCountDay",
     AVG(CASE WHEN "eventDate" BETWEEN ${weekStart}  AND ${weekEnd}  THEN "wordCount" END)::float AS "avgWordCountWeek",
-    AVG(CASE WHEN "eventDate" BETWEEN ${monthStart} AND ${monthEnd} THEN "wordCount" END)::float AS "avgWordCountMonth"
+    AVG(CASE WHEN "eventDate" BETWEEN ${monthStart} AND ${monthEnd} THEN "wordCount" END)::float AS "avgWordCountMonth",
+    AVG(CASE WHEN "eventDate" BETWEEN ${lastMonthStart} AND ${lastMonthEnd} THEN "wordCount" END)::float AS "avgWordCountLastMonth"
   `;
 }
 
 // User view
 export async function fetchUserCommentActivity(userId: string) {
-    const w = getCommentWindows();
+  const w = getCommentWindows();
 
-    const rows = await prisma.$queryRaw<
-        UserCommentActivity[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    UserCommentActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e."eventDate",
@@ -47,16 +51,16 @@ export async function fetchUserCommentActivity(userId: string) {
     FROM events
   `);
 
-    return rows[0];
+  return rows[0];
 }
 
 // Users table
 export async function fetchBulkUserCommentActivity() {
-    const w = getCommentWindows();
+  const w = getCommentWindows();
 
-    const rows = await prisma.$queryRaw<
-        BulkUserCommentActivity[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    BulkUserCommentActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e."userId",
@@ -71,16 +75,16 @@ export async function fetchBulkUserCommentActivity() {
     GROUP BY "userId";
   `);
 
-    return rows;
+  return rows;
 }
 
 // SpaceItem view
 export async function fetchSpaceItemCommentActivity(itemIds: string[]) {
-    const w = getCommentWindows();
+  const w = getCommentWindows();
 
-    const [row] = await prisma.$queryRaw<
-        SpaceItemCommentActivity[]
-    >(Prisma.sql`
+  const [row] = await prisma.$queryRaw<
+    SpaceItemCommentActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e."eventDate",
@@ -93,15 +97,15 @@ export async function fetchSpaceItemCommentActivity(itemIds: string[]) {
     FROM events
   `);
 
-    return row;
+  return row;
 }
 
 // SpaceItem table
 export async function fetchBulkSpaceItemCommentActivity(rootsJson: string) {
-    const w = getCommentWindows();
+  const w = getCommentWindows();
 
-    const rows = await prisma.$queryRaw<BulkSpaceItemCommentActivity[]>(
-        Prisma.sql`
+  const rows = await prisma.$queryRaw<BulkSpaceItemCommentActivity[]>(
+    Prisma.sql`
     WITH roots AS (
       SELECT *
       FROM jsonb_to_recordset(${rootsJson}::jsonb)
@@ -130,16 +134,16 @@ export async function fetchBulkSpaceItemCommentActivity(rootsJson: string) {
     ORDER BY "root_id";
   `);
 
-    return rows;
+  return rows;
 }
 
 // SpaceItem view - user table
 export async function fetchSpaceItemBulkUserCommentActivity(itemIds: string[]) {
-    const w = getCommentWindows();
+  const w = getCommentWindows();
 
-    const rows = await prisma.$queryRaw<
-        BulkUserCommentActivity[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    BulkUserCommentActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e."userId",
@@ -155,20 +159,20 @@ export async function fetchSpaceItemBulkUserCommentActivity(itemIds: string[]) {
     ORDER BY "userId";
   `);
 
-    return rows;
+  return rows;
 }
 
 export async function fetchHistoricalCommentData(userId: string | null, itemIds: string[]) {
-    const userFilter = userId
-        ? Prisma.sql`AND "userId" = ${userId}`
-        : Prisma.empty;
+  const userFilter = userId
+    ? Prisma.sql`AND "userId" = ${userId}`
+    : Prisma.empty;
 
-    const itemsFilter =
-        itemIds && itemIds.length > 0
-            ? Prisma.sql`AND "wrikeItemId" = ANY(${Prisma.sql`${itemIds}::text[]`})`
-            : Prisma.empty;
-    return await prisma.$queryRaw(
-        Prisma.sql`
+  const itemsFilter =
+    itemIds && itemIds.length > 0
+      ? Prisma.sql`AND "wrikeItemId" = ANY(${Prisma.sql`${itemIds}::text[]`})`
+      : Prisma.empty;
+  return await prisma.$queryRaw(
+    Prisma.sql`
             SELECT
                 TO_CHAR(DATE("eventDate"), 'YYYY-MM-DD') AS date,
                 COUNT(*)::int AS comments
@@ -179,5 +183,5 @@ export async function fetchHistoricalCommentData(userId: string | null, itemIds:
             GROUP BY DATE("eventDate")
             ORDER BY DATE("eventDate")
         `
-    );
+  );
 }

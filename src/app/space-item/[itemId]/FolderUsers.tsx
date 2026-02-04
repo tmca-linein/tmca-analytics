@@ -19,7 +19,7 @@ const FolderUsers = (
                     </div>
                 </CardHeader>
                 <CardContent className="pb-4 h-[700px]">
-                    <UsersTable initialData={data} />
+                    <UsersTable initialData={data} spaceUsers={true} />
                 </CardContent>
             </Card>
         </div>

@@ -1,11 +1,11 @@
 import prisma from "@/lib/db";
 import { getUserIdMapping } from "@/cache/legacyId-cache";
-import { getSubordinates, retrieveUserData } from "@/lib/ug-extractor";
-import { fetchBulkUserANFActivity, fetchBulkUserANFDuration, fetchSpaceItemBulkUserANFActivity, fetchSpaceItemBulkUserANFDuration } from "./anfRetriever";
+import { getSubordinates } from "@/cache/ug-cache";
+import { fetchBulkUserANFActivity, fetchBulkUserANFDuration } from "./anfRetriever";
 import { ANFDuration, BulkUserANFActivity, BulkUserCommentActivity } from "@/types/stats";
-import { fetchBulkUserCommentActivity, fetchSpaceItemBulkUserCommentActivity } from "./commentsRetriever";
+import { fetchBulkUserCommentActivity } from "./commentsRetriever";
 import { ApiWrikeUser, User } from "@/types/user";
-import { sameMoment, startOfMonthUTC, startOfQuarterUTC, startOfWeekMondayUTC } from "@/lib/utils";
+import { sameMoment, startOfLastMonthUTC, startOfMonthUTC, startOfWeekMondayUTC } from "@/lib/utils";
 
 export async function fetchFolderUsers(itemIds: string[]) {
     const users = await prisma.$queryRaw<{ assignedUserId: string }[]>`
@@ -33,7 +33,7 @@ function fillUserTable(
     );
     const weekAnfDurationMap = new Map<string, ANFDuration>();
     const monthAnfDurationMap = new Map<string, ANFDuration>();
-    const quarterAnfDurationMap = new Map<string, ANFDuration>();
+    const lastMonthAnfDurationMap = new Map<string, ANFDuration>();
     for (const anfDurationItem of anfDuration) {
         if ((anfDurationItem.granularity === "week")
             && (sameMoment(anfDurationItem.bucket, startOfWeekMondayUTC().toISOString()))) {
@@ -45,9 +45,9 @@ function fillUserTable(
             monthAnfDurationMap.set(anfDurationItem.assignedUserId, anfDurationItem);
         }
 
-        if ((anfDurationItem.granularity === "quarter")
-            && (sameMoment(anfDurationItem.bucket, startOfQuarterUTC().toISOString()))) {
-            quarterAnfDurationMap.set(anfDurationItem.assignedUserId, anfDurationItem);
+        if ((anfDurationItem.granularity === "month")
+            && (sameMoment(anfDurationItem.bucket, startOfLastMonthUTC().toISOString()))) {
+            lastMonthAnfDurationMap.set(anfDurationItem.assignedUserId, anfDurationItem);
         }
     }
 
@@ -58,60 +58,40 @@ function fillUserTable(
             firstName: user.firstName,
             lastName: user.lastName,
             primaryEmail: user.primaryEmail,
-            anfAddedToday: anfUserDataMap[legacyId].addedToday ?? 0,
-            anfAddedThisWeek: anfUserDataMap[legacyId].addedWeek ?? 0,
-            anfAddedThisMonth: anfUserDataMap[legacyId].addedMonth ?? 0,
-            anfRemovedToday: anfUserDataMap[legacyId].removedToday ?? 0,
-            anfRemovedThisWeek: anfUserDataMap[legacyId].removedWeek ?? 0,
-            anfRemovedThisMonth: anfUserDataMap[legacyId].removedMonth ?? 0,
-            commentsToday: commentUserDataMap[user.id]?.countToday ?? 0,
-            commentsThisWeek: commentUserDataMap[user.id]?.countWeek ?? 0,
-            commentsThisMonth: commentUserDataMap[user.id]?.countMonth ?? 0,
-            commentAvgWordCountToday: Math.round(commentUserDataMap[user.id]?.avgWordCountToday ?? 0),
-            commentAvgWordCountThisWeek: Math.round(commentUserDataMap[user.id]?.avgWordCountWeek ?? 0),
-            commentAvgWordCountThisMonth: Math.round(commentUserDataMap[user.id]?.avgWordCountMonth ?? 0),
-            anfDurationWeek: weekAnfDurationMap.get(legacyId)?.avgduration ?? 0,
-            anfDurationMonth: monthAnfDurationMap.get(legacyId)?.avgduration ?? 0,
-            anfDurationQuarter: quarterAnfDurationMap.get(legacyId)?.avgduration ?? 0,
-            anfTopFiveDurationWeek: weekAnfDurationMap.get(legacyId)?.topfiveavgduration ?? 0,
-            anfTopFiveDurationMonth: monthAnfDurationMap.get(legacyId)?.topfiveavgduration ?? 0,
-            anfTopFiveDurationQuarter: quarterAnfDurationMap.get(legacyId)?.topfiveavgduration ?? 0,
-            anfOverdueWeek: weekAnfDurationMap.get(legacyId)?.avgoverduehours ?? 0,
-            anfOverdueMonth: monthAnfDurationMap.get(legacyId)?.avgoverduehours ?? 0,
-            anfOverdueQuarter: quarterAnfDurationMap.get(legacyId)?.avgoverduehours ?? 0,
-            anfOverdueCountsWeek: weekAnfDurationMap.get(legacyId)?.overdue_count ?? 0,
-            anfOverdueCountsMonth: monthAnfDurationMap.get(legacyId)?.overdue_count ?? 0,
-            anfOverdueCountsQuarter: quarterAnfDurationMap.get(legacyId)?.overdue_count ?? 0,
-            anfTransitionCountsWeek: weekAnfDurationMap.get(legacyId)?.transitions_count ?? 0,
-            anfTransitionCountsMonth: monthAnfDurationMap.get(legacyId)?.transitions_count ?? 0,
-            anfTransitionCountsQuarter: quarterAnfDurationMap.get(legacyId)?.transitions_count ?? 0,
+            anfAddedDay: anfUserDataMap[legacyId].addedDay ?? 0,
+            anfAddedWeek: anfUserDataMap[legacyId].addedWeek ?? 0,
+            anfAddedMonth: anfUserDataMap[legacyId].addedMonth ?? 0,
+            anfAddedLastMonth: anfUserDataMap[legacyId].addedLastMonth ?? 0,
+            anfRemovedDay: anfUserDataMap[legacyId].removedDay ?? 0,
+            anfRemovedWeek: anfUserDataMap[legacyId].removedWeek ?? 0,
+            anfRemovedMonth: anfUserDataMap[legacyId].removedMonth ?? 0,
+            anfRemovedLastMonth: anfUserDataMap[legacyId].removedLastMonth ?? 0,
+            countDay: commentUserDataMap[user.id]?.countDay ?? 0,
+            countWeek: commentUserDataMap[user.id]?.countWeek ?? 0,
+            countMonth: commentUserDataMap[user.id]?.countMonth ?? 0,
+            countLastMonth: commentUserDataMap[user.id]?.countLastMonth ?? 0,
+            avgWordCountDay: Math.round(commentUserDataMap[user.id]?.avgWordCountDay ?? 0),
+            avgWordCountWeek: Math.round(commentUserDataMap[user.id]?.avgWordCountWeek ?? 0),
+            avgWordCountMonth: Math.round(commentUserDataMap[user.id]?.avgWordCountMonth ?? 0),
+            avgWordCountLastMonth: Math.round(commentUserDataMap[user.id]?.avgWordCountLastMonth ?? 0),
+            avgDurationWeek: weekAnfDurationMap.get(legacyId)?.avgduration ?? 0,
+            avgDurationMonth: monthAnfDurationMap.get(legacyId)?.avgduration ?? 0,
+            avgDurationLastMonth: lastMonthAnfDurationMap.get(legacyId)?.avgduration ?? 0,
+            topFiveAvgDurationWeek: weekAnfDurationMap.get(legacyId)?.topfiveavgduration ?? 0,
+            topFiveAvgDurationMonth: monthAnfDurationMap.get(legacyId)?.topfiveavgduration ?? 0,
+            topFiveAvgDurationLastMonth: lastMonthAnfDurationMap.get(legacyId)?.topfiveavgduration ?? 0,
+            avgOverdueHoursWeek: weekAnfDurationMap.get(legacyId)?.avgoverduehours ?? 0,
+            avgOverdueHoursMonth: monthAnfDurationMap.get(legacyId)?.avgoverduehours ?? 0,
+            avgOverdueHoursLastMonth: lastMonthAnfDurationMap.get(legacyId)?.avgoverduehours ?? 0,
+            overdueCountWeek: weekAnfDurationMap.get(legacyId)?.overdue_count ?? 0,
+            overdueCountMonth: monthAnfDurationMap.get(legacyId)?.overdue_count ?? 0,
+            overdueCountLastMonth: lastMonthAnfDurationMap.get(legacyId)?.overdue_count ?? 0,
+            transitionsCountWeek: weekAnfDurationMap.get(legacyId)?.transitions_count ?? 0,
+            transitionsCountMonth: monthAnfDurationMap.get(legacyId)?.transitions_count ?? 0,
+            transitionsCountLastMonth: lastMonthAnfDurationMap.get(legacyId)?.transitions_count ?? 0,
         })
     });
 }
-
-export const fetchSpaceItemUserTableData = async (sessionUserId: string, itemIds: string[]) => {
-    const [anfData, anfDuration, commentData] = await Promise.all([
-        fetchSpaceItemBulkUserANFActivity(itemIds),
-        fetchSpaceItemBulkUserANFDuration(itemIds),
-        fetchSpaceItemBulkUserCommentActivity(itemIds)
-    ]);
-
-    const { v4ToLegacy, legacyToV4 } = await getUserIdMapping();
-    const subordinates = (await getSubordinates(sessionUserId)).map(u => u.id);
-    const folderUsers = await fetchFolderUsers(itemIds); //all users with at least single anf event
-    const userIds = []
-    for (const u of folderUsers) {
-        const userId = legacyToV4.get(u.assignedUserId);
-        if (!userId) continue;
-        if (subordinates.includes(userId)) userIds.push(userId)
-    }
-
-    const allowedUsers = (await retrieveUserData(userIds))
-        .filter(u => !u.deleted);
-
-
-    return fillUserTable(allowedUsers, v4ToLegacy, anfData, anfDuration, commentData);
-};
 
 export const fetchUserTableData = async (userId: string) => {
     const [anfData, commentData, anfDuration] = await Promise.all([
@@ -119,6 +99,7 @@ export const fetchUserTableData = async (userId: string) => {
         fetchBulkUserCommentActivity(),
         fetchBulkUserANFDuration()
     ]);
+
     const { v4ToLegacy } = await getUserIdMapping();
     const users = (await getSubordinates(userId))
         .filter(u => !u.deleted && v4ToLegacy.get(u.id));

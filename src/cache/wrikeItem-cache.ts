@@ -1,24 +1,11 @@
 import { axiosRequest } from "@/lib/axios";
-import { WrikeFolder, WrikeTask } from "@/types/wrikeItem";
+import { WrikeFolder } from "@/types/wrikeItem";
 import { LRUCache } from "lru-cache";
 
-async function collectFoldersAndTasks(): Promise<{ tasks: WrikeTask[]; folders: WrikeFolder[] }> {
+async function collectFoldersAndTasks(): Promise<WrikeFolder[]> {
     const { data } = await axiosRequest<{ data: WrikeFolder[] }>("GET", '/folders?fields=["space"]');
     const folders = data.data;
-
-    const tasks: WrikeTask[] = [];
-    let nextPageToken: string | undefined = undefined;
-    do {
-        const param: string = nextPageToken ? `&nextPageToken=${nextPageToken}` : "";
-        const res = await axiosRequest<{ data: WrikeTask[]; nextPageToken?: string }>(
-            "GET",
-            `/tasks?pageSize=1000${param}&fields=["parentIds", "subTaskIds", "authorIds", "customFields"]`
-        );
-        tasks.push(...(res.data.data ?? []));
-        nextPageToken = res.data.nextPageToken;
-    } while (nextPageToken);
-
-    return { tasks, folders };
+    return folders;
 }
 
 const DEFAULT_TTL_MS = 1000 * 60 * 60;
@@ -29,11 +16,7 @@ const cache = new LRUCache({
     ttl: DEFAULT_TTL_MS,
 });
 
-const inflight = new Map<string, Promise<{ tasks: WrikeTask[]; folders: WrikeFolder[] }>>();
-
-function tasksKey(userId: string) {
-    return `${userId}:Tasks`;
-}
+const inflight = new Map<string, Promise<WrikeFolder[]>>();
 
 function foldersKey(userId: string) {
     return `${userId}:Folders`;
@@ -49,12 +32,10 @@ async function fetchAndPopulate(userId: string) {
 
     const p = (async () => {
         try {
-            const { tasks, folders } = await collectFoldersAndTasks();
-            cache.set(tasksKey(userId), tasks);
+            const folders = await collectFoldersAndTasks();
             cache.set(foldersKey(userId), folders);
-            return { tasks, folders };
+            return folders;
         } finally {
-
             inflight.delete(cKey);
         }
     })();
@@ -63,27 +44,16 @@ async function fetchAndPopulate(userId: string) {
     return p;
 }
 
-export async function getTasksForSession(userId: string) {
-    const k = tasksKey(userId);
-    const cached = cache.get(k) as WrikeTask[] | undefined;
-
-    if (cached) return cached;
-
-    const result = await fetchAndPopulate(userId);
-    return result.tasks;
-}
-
 export async function getFoldersForSession(userId: string) {
     const k = foldersKey(userId);
     const cached = cache.get(k) as WrikeFolder[] | undefined;
     if (cached) return cached;
 
     const result = await fetchAndPopulate(userId);
-    return result.folders;
+    return result;
 }
 
 export function invalidateSessionCache(userId: string) {
-    cache.delete(tasksKey(userId));
     cache.delete(foldersKey(userId));
     inflight.delete(combinedKey(userId));
 }

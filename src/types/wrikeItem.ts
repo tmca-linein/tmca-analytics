@@ -30,7 +30,7 @@ export type SpaceItem = {
     sharedIds: string[];
     subRows: SpaceItem[];
     parentId?: string;
-} & DisplayItemMetrics;
+} & Omit<DisplayItemMetrics, "id" | "day" | "wrikeItemId">;
 
 export type WrikeSpace = {
     id: string;
@@ -123,4 +123,9 @@ export type WrikeTaskData = {
     sharedIds: string[],
     authorIds: string[],
     hasAttachments: boolean,
+}
+
+export type WrikeFolderTask = {
+    rootId: string;
+    descendantId: string;
 }

@@ -85,7 +85,7 @@ module "tmca-analytics-engine" {
   cpu                     = 512
   memory                  = 1024
   asg_min_capacity        = 1
-  asg_max_capacity        = 2
+  asg_max_capacity        = 5
   asg_cpu_target_value    = 70
   asg_memory_target_value = 70
 

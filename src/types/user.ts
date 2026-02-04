@@ -7,7 +7,7 @@ export type User = {
     primaryEmail?: string;
     subRows?: User[];
     warning?: string;
-} & DisplayItemMetrics;
+} & Omit<DisplayItemMetrics, "id" | "day" | "wrikeItemId">;
 
 export interface WrikeApiUserGroupResponse {
     data: ApiWrikeUserGroup[]

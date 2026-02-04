@@ -1,57 +1,62 @@
 import prisma from "@/lib/db";
-import { axiosRequest, getHeaderConfig } from "@/lib/axios";
+import { axiosRequest } from "@/lib/axios";
 import { WrikeLegacyIdConversionResponse } from "@/types/user";
-import { AxiosRequestConfig } from "axios";
-import { unstable_cache } from "next/cache";
 
-type Mapping = { id: string; apiV2Id: string };
+const v4ToLegacyCache: Map<string, string> = new Map<string, string>();
+const legacyToV4Cache: Map<string, string> = new Map<string, string>();
+const TTL_MS = 60 * 60 * 1000;
+let mappingCacheExpires: number;
+let fetchInFlight: Promise<void> | null = null;
 
-export type Converters = {
-  v4ToLegacy: Record<string, string>;
-  legacyToV4: Record<string, string>;
-};
+async function cachedFetchMappings() {
+  if (fetchInFlight) return fetchInFlight;
 
-const EMPTY_CONVERTERS: Converters = {
-  v4ToLegacy: {},
-  legacyToV4: {},
-};
+  const now = Date.now();
+  if (mappingCacheExpires && mappingCacheExpires > now)
+    return;
 
-async function fetchMappings(config?: AxiosRequestConfig): Promise<Converters> {
-  const uniqueLegacyUsers = await prisma.aNFEvent.findMany({
-    distinct: ["assignedUserId"],
-    select: { assignedUserId: true },
-  });
+  fetchInFlight = (async () => {
+    try {
+      legacyToV4Cache.clear();
+      v4ToLegacyCache.clear();
+      const uniqueLegacyUsers = await prisma.aNFEvent.findMany({
+        distinct: ["assignedUserId"],
+        select: { assignedUserId: true },
+      });
 
-  const ids = uniqueLegacyUsers.map((u) => u.assignedUserId).filter(Boolean).sort();
-  if (ids.length === 0) return EMPTY_CONVERTERS;
+      const ids = uniqueLegacyUsers.map((u) => u.assignedUserId).filter(Boolean).sort();
+      if (ids.length === 0) return;
 
-  const res = await axiosRequest<WrikeLegacyIdConversionResponse>(
-    "GET",
-    `/ids?type=ApiV2User&ids=[${ids.join(",")}]`,
-    undefined,
-    config
-  );
+      const res = await axiosRequest<WrikeLegacyIdConversionResponse>(
+        "GET",
+        `/ids?type=ApiV2User&ids=[${ids.join(",")}]`
+      );
 
-  const mappingList = (res?.data?.data ?? []) as Mapping[];
+      const mappingList = (res?.data?.data ?? []);
 
-  if (!Array.isArray(mappingList) || mappingList.length === 0) {
-    return EMPTY_CONVERTERS;
-  }
+      if (!Array.isArray(mappingList) || mappingList.length === 0) {
+        return;
+      }
 
-  const v4ToLegacy = Object.fromEntries(mappingList.map((u) => [u.id, u.apiV2Id]));
-  const legacyToV4 = Object.fromEntries(mappingList.map((u) => [u.apiV2Id, u.id]));
+      mappingList.map((u) => v4ToLegacyCache.set(u.id, u.apiV2Id));
+      mappingList.map((u) => legacyToV4Cache.set(u.apiV2Id, u.id));
+      mappingCacheExpires = Date.now() + TTL_MS;
+    } catch (error) {
+      if (v4ToLegacyCache.size === 0 || legacyToV4Cache.size === 0) {
+        throw error;
+      }
 
-  return { v4ToLegacy, legacyToV4 };
+      console.warn("Failed to refresh legacy cache - using stale cache:", error);
+    } finally {
+      fetchInFlight = null;
+    }
+  })();
+
+  return fetchInFlight;
 }
 
-const cachedUserIdMapping = unstable_cache(
-  (config?: AxiosRequestConfig) => fetchMappings(config),
-  ["wrike-legacyId"],
-  { revalidate: 1 } // seconds
-);
 
 export async function getUserIdMapping(): Promise<{ v4ToLegacy: Map<string, string>, legacyToV4: Map<string, string> }> {
-  const config = await getHeaderConfig();
-  const mapping = await cachedUserIdMapping(config);
-  return { v4ToLegacy: new Map(Object.entries(mapping.v4ToLegacy)), legacyToV4: new Map(Object.entries(mapping.legacyToV4)) }
+  await cachedFetchMappings();
+  return { v4ToLegacy: v4ToLegacyCache, legacyToV4: legacyToV4Cache }
 }

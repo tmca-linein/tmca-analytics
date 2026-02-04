@@ -1,8 +1,8 @@
 "use client";
 
-import AppLineChart, { SelectFilterDef } from "@/components/AppLineChart";
+import AppLineChart, { SelectFilterDef } from "@/components/stats/AppLineChart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sameMoment, startOfMonthUTC, startOfQuarterUTC, startOfWeekMondayUTC } from "@/lib/utils";
+import { sameMoment, startOfLastMonthUTC, startOfMonthUTC, startOfWeekMondayUTC } from "@/lib/utils";
 import { ANFDuration } from "@/types/stats";
 import { useState } from "react";
 
@@ -24,10 +24,9 @@ const FILTERS: SelectFilterDef<ANFDuration>[] = [
 ];
 
 export default function AnfDuration({ anfData }: { anfData: ANFDuration[] }) {
-
     const weekData = anfData.find(ad => (ad.granularity === "week") && (sameMoment(ad.bucket, startOfWeekMondayUTC().toISOString())));
     const monthData = anfData.find(ad => (ad.granularity === "month") && (sameMoment(ad.bucket, startOfMonthUTC().toISOString())));
-    const quarterData = anfData.find(ad => (ad.granularity === "quarter") && (sameMoment(ad.bucket, startOfQuarterUTC().toISOString())));
+    const lastMonthData = anfData.find(ad => (ad.granularity === "month") && (sameMoment(ad.bucket, startOfLastMonthUTC().toISOString())));
     const [useGraph, setUseGraph] = useState(false);
     const comp = useGraph ? (
         <AppLineChart
@@ -113,26 +112,26 @@ export default function AnfDuration({ anfData }: { anfData: ANFDuration[] }) {
                                 <span className="text-xs text-muted-foreground">Overdue avg. duration</span>
                             </div>
                         </div>
-                        <p className="mt-4 text-sm text-muted-foreground">This quarter</p>
+                        <p className="mt-4 text-sm text-muted-foreground">Last month</p>
                         <div className="grid grid-cols-5 rounded-2xl border bg-muted/40 text-center py-4">
                             <div className="flex flex-col gap-1">
-                                <span className="text-base font-semibold">{quarterData?.avgduration ?? 0}</span>
+                                <span className="text-base font-semibold">{lastMonthData?.avgduration ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Avg. duration (h)</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
-                                <span className="text-base font-semibold">{quarterData?.topfiveavgduration ?? 0}</span>
+                                <span className="text-base font-semibold">{lastMonthData?.topfiveavgduration ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Avg. duration (h) of top 5 (longest) transitions</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
-                                <span className="text-base font-semibold">{quarterData?.transitions_count ?? 0}</span>
+                                <span className="text-base font-semibold">{lastMonthData?.transitions_count ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Transition count</span>
                             </div>
                             <div className="flex flex-col gap-1 border-x">
-                                <span className="text-base font-semibold">{quarterData?.overdue_count ?? 0}</span>
+                                <span className="text-base font-semibold">{lastMonthData?.overdue_count ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Overdue transition count</span>
                             </div>
                             <div className="flex flex-col gap-1 ">
-                                <span className="text-base font-semibold">{quarterData?.avgoverduehours ?? 0}</span>
+                                <span className="text-base font-semibold">{lastMonthData?.avgoverduehours ?? 0}</span>
                                 <span className="text-xs text-muted-foreground">Overdue avg. duration</span>
                             </div>
                         </div>

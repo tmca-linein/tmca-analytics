@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { ApiWrikeUser } from "@/types/user";
 
-
 const UserDescription = (
     props: { user: ApiWrikeUser },
 ) => {

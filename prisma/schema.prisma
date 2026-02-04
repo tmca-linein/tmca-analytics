@@ -15,6 +15,7 @@ model ANFEvent {
   state          String
   eventDate      DateTime
   authorUserId   String
+  scope          String
 
   @@index([authorUserId, assignedUserId, state, eventDate])
 }
@@ -25,6 +26,8 @@ model CommentEvent {
   userId      String
   wordCount   Int
   eventDate   DateTime
+  scope       String
+  commendId   String
 
   @@index([userId, eventDate])
 }

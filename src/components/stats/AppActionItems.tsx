@@ -1,19 +1,9 @@
 "use client";
 
 import { Pin, CalendarPlus, CalendarCheck2, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import clsx from "clsx";
-
-export type ActionItem = {
-    id: string;
-    title: string;
-    actionNeededFromDate: string;
-    actionNeededUntilDate: string;
-    overdueDuration: number;
-    type: "ANF" | "NANFA" | "DTMBF";
-    description: string;
-    link: string;
-};
+import { ActionItem } from "@/types/stats";
 
 export function AppActionItems(
     props: { items: ActionItem[], type: string },

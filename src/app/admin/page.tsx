@@ -1,7 +1,7 @@
 "use server"
 import { RBAC } from "@/generated/prisma";
 import { AdminTable } from "./AdminTable";
-import { getCompanies, getRoleOptions } from "@/lib/ug-extractor";
+import { getCompanies, getRoleOptions } from "@/cache/ug-cache";
 import prisma from "@/lib/db";
 
 async function fetchRBAC(): Promise<RBAC[]> {

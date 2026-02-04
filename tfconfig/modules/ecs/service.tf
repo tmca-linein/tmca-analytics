@@ -91,8 +91,7 @@ resource "aws_ecs_task_definition" "main" {
         {
           name      = "ACCOUNT_ID",
           valueFrom = local.wrike_account_id
-        }
-        ,
+        },
         {
           name      = "DEV_ADMIN",
           valueFrom = local.dev_admin

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { DataTable } from '../../components/table/data-table';
 import { Row } from '@tanstack/react-table';
 import clsx from 'clsx';
@@ -11,14 +11,66 @@ import { getColumns } from './tableColumns';
 interface Props {
     spaceItems: SpaceItem[];
     rootItemIds: string[];
+    dataFetcher: (secondLvlItems: SpaceItem[]) => Promise<SpaceItem[]>;
 }
 
-export const SharedSpaceItemsTable: React.FC<Props> = ({ spaceItems, rootItemIds }) => {
+export const SharedSpaceItemsTable: React.FC<Props> = ({ spaceItems, rootItemIds, dataFetcher }) => {
     const router = useRouter();
     const columns = getColumns();
-    const itemMap = useMemo(() => {
-        return new Map(spaceItems.map((item) => [item.id, item] as const));
-    }, [spaceItems]);
+    const [itemMap, setItemMap] = useState(() =>
+        new Map(spaceItems.map(item => [item.id, item] as const))
+    );
+    const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
+    const [fetchedForIds, setFetchedForIds] = useState<string[]>([]);
+
+    const addItems = useCallback((items: SpaceItem[]) => {
+        setItemMap(prev => {
+            const next = new Map(prev);
+            for (const item of items) {
+                next.set(item.id, item);
+            }
+            return next;
+        });
+    }, []);
+
+    const getSubRowsToFetch = (row: SpaceItem) => {
+        const rowChildren = []
+        for (const subRowId of row.folderChildIds) {
+            const subRow = itemMap.get(subRowId);
+            if (!subRow || (subRow.folderChildIds.length === 0 && subRow.taskChildIds.length === 0)) continue;
+            rowChildren.push(subRow)
+        }
+
+        for (const subRowId of row.taskChildIds) {
+            const subRow = itemMap.get(subRowId);
+            if (!subRow || subRow.taskChildIds.length === 0) continue;
+            rowChildren.push(subRow);
+        }
+
+
+        return rowChildren;
+    }
+
+    const handleExpand = async (rowId: string) => {
+        setLoadingRows(prev => ({ ...prev, [rowId]: true }));
+        const row = itemMap.get(rowId);
+        if (!row || fetchedForIds.includes(rowId)) {
+            setLoadingRows(prev => ({ ...prev, [rowId]: false }));
+            return;
+        }
+
+        try {
+            const subRows = getSubRowsToFetch(row);
+            const children = await dataFetcher(subRows);
+            addItems(children);
+        } catch (err) {
+            throw err;
+        } finally {
+            setFetchedForIds(prev => [...prev, rowId]);
+            setLoadingRows(prev => ({ ...prev, [rowId]: false }));
+        }
+    };
+
 
     const getWrikeRowClassName = (row: Row<SpaceItem>) => {
         const item = row.original;
@@ -77,6 +129,8 @@ export const SharedSpaceItemsTable: React.FC<Props> = ({ spaceItems, rootItemIds
             columns={columns}
             data={formattedData}
             meta={{
+                onRowExpand: handleExpand,
+                loadingRows,
                 onRowClicked: rowClickEvent,
                 getRowClassName: getWrikeRowClassName,
             }}

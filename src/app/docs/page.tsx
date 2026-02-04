@@ -1,6 +1,3 @@
-// app/docs/user-overview-dashboard/page.tsx
-// Documentation page for the "User Overview Dashboard" written in TypeScript,
-// using shadcn/ui components (based on the previous layout style).
 "use client"
 import * as React from "react"
 import Image from "next/image";
@@ -256,7 +253,6 @@ export default function UserOverviewDashboardDocsPage() {
 
     return (
         <div className="mx-auto w-full max-w-6xl px-4 py-10 md:px-6">
-            {/* Header */}
             <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">Docs</Badge>
@@ -303,7 +299,6 @@ export default function UserOverviewDashboardDocsPage() {
 
             <Separator className="my-8" />
 
-            {/* Intro row */}
             <div className="grid gap-6 md:grid-cols-3">
                 <div className="md:col-span-2 space-y-6">
 
@@ -397,7 +392,6 @@ export default function UserOverviewDashboardDocsPage() {
 
             <Separator className="my-10" />
 
-            {/* Main sections */}
             <div className="space-y-6">
                 {sections.map((s) => (
                     <SectionCard key={s.id} section={s} />
@@ -406,7 +400,6 @@ export default function UserOverviewDashboardDocsPage() {
 
             <Separator className="my-10" />
 
-            {/* Common Questions */}
             <Card id="common-questions" className="scroll-mt-24">
                 <CardHeader>
                     <CardTitle>Common Questions (FAQ)</CardTitle>

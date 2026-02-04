@@ -1,12 +1,12 @@
 export type UserANFActivity = {
-    addedToday: number;
+    addedDay: number;
     addedWeek: number;
     addedMonth: number;
-    addedTotal: number;
-    removedToday: number;
+    addedLastMonth: number;
+    removedDay: number;
     removedWeek: number;
     removedMonth: number;
-    removedTotal: number;
+    removedLastMonth: number;
 }
 
 export type BulkUserANFActivity = {
@@ -35,19 +35,21 @@ export type ANFDuration = {
 export type ANFLongDurationItem = {
     id: string,
     wrikeItemId: string,
+    scope: string,
     added_at: Date,
     duration_hours: number
 }
 
 
 export type UserCommentActivity = {
-    countToday: number,
+    countDay: number,
     countWeek: number,
     countMonth: number,
-    countTotal: number,
-    avgWordCountToday: number
-    avgWordCountWeek: number
-    avgWordCountMonth: number
+    countLastMonth: number,
+    avgWordCountDay: number,
+    avgWordCountWeek: number,
+    avgWordCountMonth: number,
+    avgWordCountLastMonth: number
 }
 
 export type BulkUserCommentActivity = { userId: string } & UserCommentActivity;
@@ -63,31 +65,93 @@ export type SpaceItemMetricData =
 
 
 export type DisplayItemMetrics = {
-    anfAddedToday?: number;
-    anfAddedThisWeek?: number;
-    anfAddedThisMonth?: number;
-    anfRemovedToday?: number;
-    anfRemovedThisWeek?: number;
-    anfRemovedThisMonth?: number;
-    anfDurationWeek?: number;
-    anfDurationMonth?: number;
-    anfDurationQuarter?: number;
-    anfTopFiveDurationWeek?: number;
-    anfTopFiveDurationMonth?: number;
-    anfTopFiveDurationQuarter?: number;
-    anfOverdueWeek?: number;
-    anfOverdueMonth?: number;
-    anfOverdueQuarter?: number;
-    anfOverdueCountsWeek?: number;
-    anfOverdueCountsMonth?: number;
-    anfOverdueCountsQuarter?: number;
-    anfTransitionCountsWeek?: number;
-    anfTransitionCountsMonth?: number;
-    anfTransitionCountsQuarter?: number;
-    commentsToday?: number;
-    commentsThisWeek?: number;
-    commentsThisMonth?: number;
-    commentAvgWordCountToday?: number;
-    commentAvgWordCountThisWeek?: number;
-    commentAvgWordCountThisMonth?: number;
+    id?: string;
+    day: string;
+    wrikeItemId?: string,
+    anfAddedDay?: number | null;
+    anfAddedWeek?: number | null;
+    anfAddedMonth?: number | null;
+    anfAddedLastMonth?: number | null;
+    anfRemovedDay?: number | null;
+    anfRemovedWeek?: number | null;
+    anfRemovedMonth?: number | null;
+    anfRemovedLastMonth?: number | null;
+    bucketWeek?: string | null;
+    avgDurationWeek?: number | null;
+    topFiveAvgDurationWeek?: number | null;
+    transitionsCountWeek?: number | null;
+    overdueCountWeek?: number | null;
+    avgOverdueHoursWeek?: number | null;
+    bucketMonth?: string | null;
+    avgDurationMonth?: number | null;
+    topFiveAvgDurationMonth?: number | null;
+    transitionsCountMonth?: number | null;
+    overdueCountMonth?: number | null;
+    avgOverdueHoursMonth?: number | null;
+    bucketLastMonth?: string | null;
+    avgDurationLastMonth?: number | null;
+    topFiveAvgDurationLastMonth?: number | null;
+    transitionsCountLastMonth?: number | null;
+    overdueCountLastMonth?: number | null;
+    avgOverdueHoursLastMonth?: number | null;
+    countDay?: number | null;
+    countWeek?: number | null;
+    countMonth?: number | null;
+    countLastMonth?: number | null;
+    avgWordCountDay?: number | null;
+    avgWordCountWeek?: number | null;
+    avgWordCountMonth?: number | null;
+    avgWordCountLastMonth?: number | null;
 }
+
+export type DisplayItemUserMetrics = DisplayItemMetrics & { userId: string }
+
+export type ActionItem = {
+    id: string;
+    title: string;
+    actionNeededFromDate: string;
+    actionNeededUntilDate: string;
+    overdueDuration: number;
+    type: "ANF" | "NANFA" | "DTMBF";
+    description: string;
+    link: string;
+};
+
+export type ActivityItem = {
+    id: string;
+    title: string;
+    date: string;
+    description: string;
+    type: "ANF" | "comment";
+    link: string;
+};
+
+export type AnfStatsRow = { date: string; added: number; removed: number };
+export type CommentsRow = { date: string; comments: number };
+
+export type AttentionItem = {
+    id: number;
+    title: string;
+    description?: string;
+    date: string;
+    status: "overdue" | "today" | "upcoming" | "completed";
+    time?: string;
+    link: string;
+};
+
+export type SeriesDef<T> = {
+    key: keyof T
+    label: string
+    color?: string
+}
+export type SelectFilterDef<TData> = {
+    id: string;
+    label: string;
+    options: Array<{ value: string; label: string }>;
+    defaultValue: string;
+    apply: (row: TData, selectedValue: string, allRows: TData[]) => boolean;
+    /** Optional: hide the filter entirely based on data */
+    hidden?: (allRows: TData[]) => boolean;
+    /** Optional: custom trigger className */
+    triggerClassName?: string;
+};

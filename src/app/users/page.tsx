@@ -4,8 +4,6 @@ import { authConfig } from '@/lib/auth';
 import { SessionExpired } from '@/components/AppSessionExpired';
 import { fetchUserTableData } from '@/stats/userRetriever';
 
-
-
 const SpaceItemsPage = async () => {
   const session = await getServerSession(authConfig);
   if (!session) return <SessionExpired />;

@@ -41,7 +41,6 @@ export const AdminTable: React.FC<Props> = ({ initialData, options, persistData 
         }, 10_000);
     };
 
-    // optional: cleanup on unmount
     useEffect(() => {
         return () => {
             if (hideTimerRef.current) clearTimeout(hideTimerRef.current);

@@ -1,4 +1,4 @@
-import { fetchSpaceItems } from "@/stats/spaceItemBuilder";
+import { fetchSpaceItems, loadSecondLvlItemChildren } from "@/stats/spaceItemBuilder";
 import { FullSpaceItemsTable } from "./FullSpaceItemsTable";
 
 const SpaceItemsPage = async () => {
@@ -10,7 +10,7 @@ const SpaceItemsPage = async () => {
                 <h1 className="font-semibold">Space overview</h1>
             </div>
             <div className="flex-1 overflow-hidden">
-                <FullSpaceItemsTable spaceItems={allSpaceItems} rootItemIds={rootFolderIds} />
+                <FullSpaceItemsTable spaceItems={allSpaceItems} rootItemIds={rootFolderIds} dataFetcher={loadSecondLvlItemChildren} />
             </div>
         </>
     );

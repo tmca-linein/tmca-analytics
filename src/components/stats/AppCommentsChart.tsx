@@ -1,10 +1,7 @@
 "use client";
 
-import AppBarChart from "@/components/AppBarChart";
-import { SelectFilterDef } from "@/components/AppLineChart";
-
-
-export type CommentsRow = { date: string; comments: number };
+import AppBarChart from "@/components/stats/AppBarChart";
+import { CommentsRow, SelectFilterDef } from "@/types/stats";
 
 export default function CommentsChart({ data }: { data: CommentsRow[] }) {
     const filters: SelectFilterDef<CommentsRow>[] = [

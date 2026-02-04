@@ -7,7 +7,6 @@ const inflight = new Map<string, Promise<string>>();
 const parentByChild = new Map<string, string[]>();
 const ancestorsCache = new Map<string, string[]>();
 const TTL_MS = 60 * 60 * 1000;
-let ugCacheExpires: number;
 let userCacheExpires: number;
 let ancestorsCacheExpires: number;
 
@@ -129,7 +128,7 @@ export async function cacheUsernames() {
 export async function cacheAncestorMappings() {
     const now = Date.now();
 
-    if (!!ugCacheExpires && ugCacheExpires > now)
+    if (!!ancestorsCacheExpires && ancestorsCacheExpires > now)
         return; // cache is valid
 
     parentByChild.clear();
@@ -149,12 +148,12 @@ export async function cacheAncestorMappings() {
         }
     }
 
-    ugCacheExpires = Date.now() + TTL_MS;
+    ancestorsCacheExpires = Date.now() + TTL_MS;
 }
 
 export function getAllParents(id: string): string[] {
     const now = Date.now();
-    if (!ancestorsCacheExpires || ugCacheExpires < now) {
+    if (!ancestorsCacheExpires || ancestorsCacheExpires < now) {
         ancestorsCache.clear();
         ancestorsCacheExpires = Date.now() + TTL_MS;
     }

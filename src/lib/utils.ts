@@ -29,6 +29,12 @@ export function startOfMonthUTC(d = new Date()) {
   return x;
 }
 
+export function startOfLastMonthUTC(d = new Date()) {
+  const x = startOfMonthUTC(d);
+  x.setUTCMonth(x.getUTCMonth() - 1);
+  return x;
+}
+
 export function startOfQuarterUTC(d = new Date()) {
   const x = new Date(d);
   const m = x.getUTCMonth();
@@ -38,7 +44,25 @@ export function startOfQuarterUTC(d = new Date()) {
   return x;
 }
 
+export function toLocalYYYYMMDD(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+
 const toUtcIso = (bucket: string) => bucket.replace(" ", "T") + "Z";
+
+export function isoTomorrowAtUTC(hour = 3, minute = 30) {
+  const now = new Date();
+  return new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1,
+    hour, minute, 0, 0
+  )).toISOString();
+}
 
 export const sameMoment = (a: string, b: string) =>
   Date.parse(toUtcIso(a)) === Date.parse(b);

@@ -1,4 +1,4 @@
-import { getSubordinates } from "@/lib/ug-extractor";
+import { getSubordinates } from "@/cache/ug-cache";
 import { SessionExpired } from "@/components/AppSessionExpired";
 import { requireAuth } from "@/lib/auth";
 import { redirect } from "next/navigation";

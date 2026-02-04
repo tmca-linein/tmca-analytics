@@ -7,16 +7,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, AlertTriangle } from "lucide-react";
-
-export type AttentionItem = {
-    id: number;
-    title: string;
-    description?: string;
-    date: string;
-    status: "overdue" | "today" | "upcoming" | "completed";
-    time?: string;
-    link: string;
-};
+import { AttentionItem } from "@/types/stats";
 
 type AppCalendarViewProps<TData extends AttentionItem> = {
     title: string
@@ -28,7 +19,6 @@ export function AppCalendarView<TData extends AttentionItem>(
 ) {
     const [date, setDate] = useState<Date | undefined>(new Date());
     const items = props.items ?? [];
-    // Normalize to start-of-day so equality checks work
     const itemsByDay = useMemo(() => {
         return items.reduce<Record<string, AttentionItem[]>>((acc, item) => {
             const key = startOfDay(item.date).toISOString();
@@ -62,24 +52,20 @@ export function AppCalendarView<TData extends AttentionItem>(
 
             <CardContent className="pb-6 w-full">
                 <div className="w-full grid gap-6 justify-items-center md:grid-cols-[minmax(0,1fr),minmax(0,1fr)]">
-                    {/* Calendar with highlighted days */}
                     <Calendar
                         mode="single"
                         selected={date}
                         onSelect={setDate}
                         className="rounded-2xl border bg-card p-3 text-sm"
-                        // Mark days that have at least one item
                         modifiers={{
                             hasAttention: datesWithAttention,
                         }}
                         modifiersClassNames={{
                             hasAttention:
-                                // tiny dot under the number
                                 "relative after:absolute after:left-1/2 after:bottom-0 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:rounded-full after:bg-emerald-500",
                         }}
                     />
 
-                    {/* Scrollable list */}
                     <div className="w-full flex flex-col">
                         <div className="mb-3 flex items-center justify-between">
                             <p className="text-sm font-medium">

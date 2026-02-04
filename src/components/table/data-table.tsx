@@ -191,7 +191,7 @@ export function DataTable<TData extends { id?: string, subRows?: TData[], warnin
                       <div
                         key={cell.id}
                         className={clsx(
-                          "p-2",
+                          "p-2 box-border border-b border-r last:border-r-0",
                           stickyLeft && "sticky left-0 z-20 bg-inherit"
                         )}
                         style={stickyLeft ? { left } : undefined}

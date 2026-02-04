@@ -1,59 +1,63 @@
 import { Prisma } from '@/generated/prisma';
 import prisma from '@/lib/db';
+import { startOfLastMonthUTC } from '@/lib/utils';
 import {
-    ANFDuration,
-    BulkSpaceItemANFActivity,
-    BulkUserANFActivity,
-    SpaceItemANFActivity,
-    UserANFActivity,
-    ANFLongDurationItem
+  ANFDuration,
+  BulkSpaceItemANFActivity,
+  BulkUserANFActivity,
+  SpaceItemANFActivity,
+  UserANFActivity,
+  ANFLongDurationItem
 } from '@/types/stats';
 import {
-    startOfDay,
-    startOfWeek,
-    startOfMonth,
-    endOfDay,
-    endOfMonth,
-    endOfWeek
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+  endOfDay,
+  endOfMonth,
+  endOfWeek,
 } from 'date-fns';
 
 
 function getAnfWindows(now = new Date()) {
-    const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
+  const todayStart = startOfDay(now);
+  const todayEnd = endOfDay(now);
 
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
 
-    return { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd };
+  const lastMonthStart = startOfLastMonthUTC(now);
+  const lastMonthEnd = startOfMonth(now);
+
+  return { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd, lastMonthStart, lastMonthEnd };
 }
 
 function anfAggSelect(w: ReturnType<typeof getAnfWindows>) {
-    const { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd } = w;
+  const { todayStart, todayEnd, weekStart, weekEnd, monthStart, monthEnd, lastMonthStart, lastMonthEnd } = w;
 
-    return Prisma.sql`
-    SUM(CASE WHEN state = 'ADDED'   AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd} THEN 1 ELSE 0 END)::int AS "addedToday",
+  return Prisma.sql`
+    SUM(CASE WHEN state = 'ADDED'   AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd} THEN 1 ELSE 0 END)::int AS "addedDay",
     SUM(CASE WHEN state = 'ADDED'   AND "eventDate" BETWEEN ${weekStart}  AND ${weekEnd}  THEN 1 ELSE 0 END)::int AS "addedWeek",
     SUM(CASE WHEN state = 'ADDED'   AND "eventDate" BETWEEN ${monthStart} AND ${monthEnd} THEN 1 ELSE 0 END)::int AS "addedMonth",
-    SUM(CASE WHEN state = 'ADDED'                                                         THEN 1 ELSE 0 END)::int AS "addedTotal",
+    SUM(CASE WHEN state = 'ADDED'   AND "eventDate" BETWEEN ${lastMonthStart} AND ${lastMonthEnd} THEN 1 ELSE 0 END)::int AS "addedLastMonth",
 
-    SUM(CASE WHEN state = 'REMOVED' AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd} AND is_valid_removed THEN 1 ELSE 0 END)::int AS "removedToday",
+    SUM(CASE WHEN state = 'REMOVED' AND "eventDate" BETWEEN ${todayStart} AND ${todayEnd} AND is_valid_removed THEN 1 ELSE 0 END)::int AS "removedDay",
     SUM(CASE WHEN state = 'REMOVED' AND "eventDate" BETWEEN ${weekStart}  AND ${weekEnd}  AND is_valid_removed THEN 1 ELSE 0 END)::int AS "removedWeek",
     SUM(CASE WHEN state = 'REMOVED' AND "eventDate" BETWEEN ${monthStart} AND ${monthEnd} AND is_valid_removed THEN 1 ELSE 0 END)::int AS "removedMonth",
-    SUM(CASE WHEN state = 'REMOVED'                                                       AND is_valid_removed THEN 1 ELSE 0 END)::int AS "removedTotal"
+    SUM(CASE WHEN state = 'REMOVED' AND "eventDate" BETWEEN ${lastMonthStart} AND ${lastMonthEnd} AND is_valid_removed THEN 1 ELSE 0 END)::int AS "removedLastMonth"
   `;
 }
 
 // Users table view
 export async function fetchBulkUserANFActivity() {
-    const w = getAnfWindows();
+  const w = getAnfWindows();
 
-    const rows = await prisma.$queryRaw<
-        BulkUserANFActivity[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    BulkUserANFActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e."assignedUserId",
@@ -84,16 +88,16 @@ export async function fetchBulkUserANFActivity() {
     ORDER BY "assignedUserId";
   `);
 
-    return rows;
+  return rows;
 }
 
 
 // SpaceItem table view
 export async function fetchBulkSpaceItemANFActivity(rootsJson: string) {
-    const w = getAnfWindows();
+  const w = getAnfWindows();
 
-    const rows = await prisma.$queryRaw<BulkSpaceItemANFActivity[]>(
-        Prisma.sql`
+  const rows = await prisma.$queryRaw<BulkSpaceItemANFActivity[]>(
+    Prisma.sql`
     WITH roots AS (
       SELECT *
       FROM jsonb_to_recordset(${rootsJson}::jsonb)
@@ -138,16 +142,16 @@ export async function fetchBulkSpaceItemANFActivity(rootsJson: string) {
     ORDER BY "root_id";
   `);
 
-    return rows;
+  return rows;
 }
 
 // User view
 export async function fetchUserANFActivity(legacyUserId: string) {
-    const w = getAnfWindows();
+  const w = getAnfWindows();
 
-    const rows = await prisma.$queryRaw<
-        UserANFActivity[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    UserANFActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e.state,
@@ -175,16 +179,16 @@ export async function fetchUserANFActivity(legacyUserId: string) {
     FROM flagged
   `);
 
-    return rows[0];
+  return rows[0];
 }
 
 // SpaceItem view - accumulated
 export async function fetchSpaceItemANFActivity(itemIds: string[]) {
-    const w = getAnfWindows();
+  const w = getAnfWindows();
 
-    const rows = await prisma.$queryRaw<
-        SpaceItemANFActivity[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    SpaceItemANFActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e.state,
@@ -212,16 +216,16 @@ export async function fetchSpaceItemANFActivity(itemIds: string[]) {
     FROM flagged
   `);
 
-    return rows[0];
+  return rows[0];
 }
 
 // SpaceItem view - user table
 export async function fetchSpaceItemBulkUserANFActivity(itemIds: string[]) {
-    const w = getAnfWindows();
+  const w = getAnfWindows();
 
-    const rows = await prisma.$queryRaw<
-        BulkUserANFActivity[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    BulkUserANFActivity[]
+  >(Prisma.sql`
     WITH events AS (
       SELECT
         e."assignedUserId",
@@ -253,7 +257,7 @@ export async function fetchSpaceItemBulkUserANFActivity(itemIds: string[]) {
     ORDER BY "assignedUserId";
   `);
 
-    return rows;
+  return rows;
 }
 
 
@@ -289,9 +293,6 @@ const anfDurationCore = Prisma.sql`
     UNION ALL
     SELECT 'month'   AS granularity, date_trunc('month',   next_date) AS bucket, duration, "assignedUserId", root_id
     FROM pairs
-    UNION ALL
-    SELECT 'quarter' AS granularity, date_trunc('quarter', next_date) AS bucket, duration, "assignedUserId", root_id
-    FROM pairs
   ),
   ranked AS (
     SELECT
@@ -310,11 +311,11 @@ const anfDurationCore = Prisma.sql`
 
 // Single user ANF durations
 export async function fetchUserANFDuration(legacyUserId: string) {
-    if (!legacyUserId) return [];
+  if (!legacyUserId) return [];
 
-    const rows = await prisma.$queryRaw<
-        ANFDuration[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    ANFDuration[]
+  >(Prisma.sql`
     WITH ordered AS (
       SELECT
         "assignedUserId",
@@ -351,13 +352,13 @@ export async function fetchUserANFDuration(legacyUserId: string) {
     ORDER BY granularity, bucket
   `);
 
-    return rows;
+  return rows;
 }
 
 // Users table ANF duration
 export async function fetchBulkUserANFDuration() {
-    const rows = await prisma.$queryRaw<ANFDuration[]>(
-        Prisma.sql`
+  const rows = await prisma.$queryRaw<ANFDuration[]>(
+    Prisma.sql`
       WITH ordered AS (
         SELECT
           "assignedUserId",
@@ -393,16 +394,16 @@ export async function fetchBulkUserANFDuration() {
       GROUP BY granularity, bucket, "assignedUserId"
       ORDER BY granularity, bucket, "assignedUserId"
     `
-    );
+  );
 
-    return rows;
+  return rows;
 }
 
 // SpaceItem table ANF duration
 export async function fetchBulkSpaceItemANFDuration(rootsJson: string) {
-    const rows = await prisma.$queryRaw<
-        ANFDuration[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    ANFDuration[]
+  >(Prisma.sql`
     WITH roots AS (
       SELECT *
       FROM jsonb_to_recordset(${rootsJson}::jsonb)
@@ -453,14 +454,14 @@ export async function fetchBulkSpaceItemANFDuration(rootsJson: string) {
       ORDER BY granularity, bucket, "root_id"
   `);
 
-    return rows;
+  return rows;
 }
 
 // SpaceItem view - accumulated
 export async function fetchSpaceItemANFDuration(itemIds: string[]) {
-    const rows = await prisma.$queryRaw<
-        ANFDuration[]
-    >(Prisma.sql`
+  const rows = await prisma.$queryRaw<
+    ANFDuration[]
+  >(Prisma.sql`
     WITH ordered AS (
       SELECT
         "assignedUserId",
@@ -497,13 +498,13 @@ export async function fetchSpaceItemANFDuration(itemIds: string[]) {
   ORDER BY granularity, bucket
   `);
 
-    return rows;
+  return rows;
 }
 
 // SpaceItem view - users table ANF duration
 export async function fetchSpaceItemBulkUserANFDuration(itemIds: string[]) {
-    const rows = await prisma.$queryRaw<ANFDuration[]>(
-        Prisma.sql`
+  const rows = await prisma.$queryRaw<ANFDuration[]>(
+    Prisma.sql`
       WITH ordered AS (
         SELECT
           "assignedUserId",
@@ -540,23 +541,23 @@ export async function fetchSpaceItemBulkUserANFDuration(itemIds: string[]) {
       GROUP BY granularity, bucket, "assignedUserId"
       ORDER BY granularity, bucket, "assignedUserId"
     `
-    );
+  );
 
-    return rows;
+  return rows;
 }
 
 export async function fetchHistoricalANFData(legacyUserId: string | null, itemIds: string[]) {
-    const userFilter = legacyUserId
-        ? Prisma.sql`AND e."assignedUserId" = ${legacyUserId}`
-        : Prisma.empty;
+  const userFilter = legacyUserId
+    ? Prisma.sql`AND e."assignedUserId" = ${legacyUserId}`
+    : Prisma.empty;
 
-    const itemsFilter =
-        itemIds && itemIds.length > 0
-            ? Prisma.sql`AND e."wrikeItemId" = ANY(${Prisma.sql`${itemIds}::text[]`})`
-            : Prisma.empty;
+  const itemsFilter =
+    itemIds && itemIds.length > 0
+      ? Prisma.sql`AND e."wrikeItemId" = ANY(${Prisma.sql`${itemIds}::text[]`})`
+      : Prisma.empty;
 
-    return prisma.$queryRaw(
-        Prisma.sql`
+  return prisma.$queryRaw(
+    Prisma.sql`
             SELECT
                 TO_CHAR(DATE(e."eventDate"), 'YYYY-MM-DD') AS date,
                 SUM(CASE WHEN e.state = 'ADDED' THEN 1 ELSE 0 END)::int AS added,
@@ -582,25 +583,26 @@ export async function fetchHistoricalANFData(legacyUserId: string | null, itemId
             GROUP BY DATE(e."eventDate")
             ORDER BY DATE(e."eventDate");
         `
-    );
+  );
 
 }
 
 export async function fetchTopLongestActiveANFDurations(
-    legacyUserId: string | null,
-    itemIds: string[],
-    limit: number = 10): Promise<ANFLongDurationItem[]> {
-    const userFilter = legacyUserId ? Prisma.sql`AND "assignedUserId" = ${legacyUserId}` : Prisma.empty;
-    const itemsFilter = itemIds && itemIds.length > 0
-        ? Prisma.sql`AND "wrikeItemId" = ANY(${itemIds}::text[])`
-        : Prisma.empty;
+  legacyUserId: string | null,
+  itemIds: string[],
+  limit: number = 10): Promise<ANFLongDurationItem[]> {
+  const userFilter = legacyUserId ? Prisma.sql`AND "assignedUserId" = ${legacyUserId}` : Prisma.empty;
+  const itemsFilter = itemIds && itemIds.length > 0
+    ? Prisma.sql`AND "wrikeItemId" = ANY(${itemIds}::text[])`
+    : Prisma.empty;
 
-    const rows = await prisma.$queryRaw<ANFLongDurationItem[]>(Prisma.sql`
+  const rows = await prisma.$queryRaw<ANFLongDurationItem[]>(Prisma.sql`
     WITH ordered AS (
       SELECT
         "id",
         "wrikeItemId",
         state,
+        scope,
         "eventDate",
         "assignedUserId",
         LEAD(state) OVER (
@@ -620,6 +622,7 @@ export async function fetchTopLongestActiveANFDurations(
       SELECT
         "id",
         "wrikeItemId",
+        scope,
         "assignedUserId",
         "eventDate" AS added_at,
         (EXTRACT(EPOCH FROM (NOW() - "eventDate")) / 3600.0)::float8 AS duration_hours
@@ -630,6 +633,7 @@ export async function fetchTopLongestActiveANFDurations(
     SELECT
       "id",
       "wrikeItemId",
+      "scope",
       "assignedUserId",
       added_at,
       ROUND(duration_hours::numeric, 1)::float8 AS duration_hours
@@ -638,5 +642,5 @@ export async function fetchTopLongestActiveANFDurations(
     LIMIT ${Prisma.sql`${limit}`}
   `);
 
-    return rows;
+  return rows;
 }

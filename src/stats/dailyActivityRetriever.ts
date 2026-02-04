@@ -1,10 +1,10 @@
 import { getUserName } from '@/cache/user-cache';
-import { ActivityItem } from '@/components/AppActivityWindow';
+import { ActivityItem } from '@/components/stats/AppActivityWindow';
 import { ANFEvent, CommentEvent } from '@/generated/prisma';
 import { axiosRequest } from '@/lib/axios';
 import prisma from '@/lib/db';
 import { chunkArray } from '@/lib/utils';
-import { WrikeApiTasksResponse, WrikeTask } from '@/types/wrikeItem';
+import { WrikeApiFolderResponse, WrikeApiTasksResponse, WrikeFolder, WrikeTask } from '@/types/wrikeItem';
 import { startOfDay, endOfDay } from 'date-fns';
 
 type TaskResult<T> =
@@ -23,7 +23,11 @@ function with404Fallback<T>(p: Promise<T>): Promise<TaskResult<T>> {
 }
 
 async function buildActivities(lastANF: ANFEvent[], lastComment: CommentEvent[]) {
-    const tasksToFetch = [...lastANF.map(a => a.wrikeItemId), ...lastComment.map(a => a.wrikeItemId)]
+    const tasksToFetch = [
+        ...lastANF.filter(ae => ae.scope === 'TASK').map(a => a.wrikeItemId),
+        ...lastComment.filter(ce => ce.scope === 'TASK').map(a => a.wrikeItemId)
+    ];
+
     const taskChunks = chunkArray(tasksToFetch, 100);
     const taskChunkResponses = await Promise.all(
         taskChunks.map((chunk) =>
@@ -36,11 +40,30 @@ async function buildActivities(lastANF: ANFEvent[], lastComment: CommentEvent[])
     const tasks: WrikeTask[] = taskChunkResponses.flatMap(r =>
         r.ok ? (r.value.data.data as WrikeTask[]) : []
     );
-
     const taskById = new Map(tasks.map(t => [t.id, t]));
+
+    const projectsToFetch = [
+        ...lastANF.filter(ae => ae.scope === 'FOLDER').map(a => a.wrikeItemId),
+        ...lastComment.filter(ce => ce.scope === 'FOLDER').map(a => a.wrikeItemId)
+    ];
+
+    const projectChunks = chunkArray(projectsToFetch, 100);
+    const projectChunkResponses = await Promise.all(
+        projectChunks.map((chunk) =>
+            with404Fallback(
+                axiosRequest<WrikeApiFolderResponse>("GET", `/tasks/${chunk.join(",")}`)
+            )
+        )
+    );
+
+    const projects: WrikeFolder[] = projectChunkResponses.flatMap(r =>
+        r.ok ? (r.value.data.data as WrikeFolder[]) : []
+    );
+
+    const projectById = new Map(projects.map(t => [t.id, t]));
     const anfActivities = await Promise.all(
         lastANF.map(async (value) => {
-            const task = taskById.get(value.wrikeItemId);
+            const task = taskById.get(value.wrikeItemId) ?? projectById.get(value.wrikeItemId);
             const taskData = task
                 ? task
                 : { title: "***Task not found or not authorised***", permalink: "#" };
@@ -61,7 +84,7 @@ async function buildActivities(lastANF: ANFEvent[], lastComment: CommentEvent[])
 
     const commentActivities = await Promise.all(
         lastComment.map(async (value) => {
-            const task = taskById.get(value.wrikeItemId);
+            const task = taskById.get(value.wrikeItemId) ?? projectById.get(value.wrikeItemId);
             const taskData = task
                 ? task
                 : { title: "***Task not found or not authorised***", permalink: "#" };

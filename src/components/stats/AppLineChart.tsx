@@ -23,25 +23,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Button } from "./ui/button"
-
-type SeriesDef<T> = {
-    key: keyof T
-    label: string
-    color?: string
-}
-
-export type SelectFilterDef<TData> = {
-    id: string;
-    label: string;
-    options: Array<{ value: string; label: string }>;
-    defaultValue: string;
-    apply: (row: TData, selectedValue: string, allRows: TData[]) => boolean;
-    /** Optional: hide the filter entirely based on data */
-    hidden?: (allRows: TData[]) => boolean;
-    /** Optional: custom trigger className */
-    triggerClassName?: string;
-};
+import { Button } from "../ui/button"
+import { SelectFilterDef, SeriesDef } from "@/types/stats"
 
 type AppLineChartProps<TData extends Record<string, string | number>> = {
     chartTitle: string
@@ -200,8 +183,8 @@ function AppLineChart<TData extends Record<string, string | number>>(
                                 axisLine={false}
                                 tickMargin={8}
                                 width={40}
-                                domain={["auto", "auto"]}   // default, but explicit
-                                padding={{ top: 36, bottom: 36 }}  // adds space above max
+                                domain={["auto", "auto"]}
+                                padding={{ top: 36, bottom: 36 }}
                             />
                             <ChartTooltip
                                 cursor={false}

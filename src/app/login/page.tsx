@@ -9,7 +9,6 @@ export default function LoginPage() {
     return (
         <>
             <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-                {/* Header - TMV Capital Style */}
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
                     <div className="bg-sidebar rounded-t-lg px-8 py-5 flex items-center justify-between shadow-lg">
                         <div className="flex items-center space-x-4">
@@ -21,7 +20,6 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {/* Main Content Card */}
                     <div className="bg-white rounded-b-lg shadow-xl px-10 py-12">
                         <div className="text-center">
                             <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
@@ -31,7 +29,6 @@ export default function LoginPage() {
                         </div>
 
                         <div className="mt-12">
-                            {/* Single Button - Full Match to Your Design */}
                             <WrikeSignInButton />
 
                             <p className="mt-6 text-center text-xs text-gray-500">
@@ -48,7 +45,6 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {/* Optional Footer */}
                     <div className="mt-8 text-center">
                         <p className="text-xs text-gray-500">
                             © 2025 TMV Capital. All rights reserved.

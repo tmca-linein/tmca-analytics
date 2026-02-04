@@ -1,8 +1,8 @@
 "use client";
 
-import AppAreaChart, { SelectFilterDef } from "@/components/AppAreaChart";
+import AppAreaChart from "@/components/stats/AppAreaChart";
+import { AnfStatsRow, SelectFilterDef } from "@/types/stats";
 
-export type AnfStatsRow = { date: string; added: number; removed: number };
 const FILTERS: SelectFilterDef<AnfStatsRow>[] = [
     {
         id: "date",

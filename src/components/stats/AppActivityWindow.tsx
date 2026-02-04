@@ -1,7 +1,7 @@
 "use client";
 
 import { Pin, Pencil } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 export type ActivityItem = {
     id: string;

@@ -1,105 +1,49 @@
-import { cacheAncestorMappings, cacheUsernames, getUserName } from "@/cache/user-cache";
-import { SpaceItem, WrikeApiFolderResponse, WrikeFolder, WrikeTask } from "@/types/wrikeItem";
+"use server"
+import { cacheAncestorMappings, cacheUsernames, getAllParents, getUserName } from "@/cache/user-cache";
+import { SpaceItem, WrikeApiFolderResponse, WrikeApiTasksResponse, WrikeFolder } from "@/types/wrikeItem";
 import { axiosRequest } from "../lib/axios";
-import { chunkArray, sameMoment, startOfMonthUTC, startOfQuarterUTC, startOfWeekMondayUTC } from "../lib/utils";
-import { getBulkFolderTasksTraversal } from "@/cache/folder-cache";
-import { fetchBulkSpaceItemCommentActivity } from "@/stats/commentsRetriever";
-import { fetchBulkSpaceItemANFActivity, fetchBulkSpaceItemANFDuration } from "@/stats/anfRetriever";
-import { ANFDuration, BulkSpaceItemANFActivity, BulkSpaceItemCommentActivity, SpaceItemMetricData } from "@/types/stats";
-import { getFoldersForSession, getTasksForSession } from "@/cache/wrikeItem-cache";
+import { chunkArray } from "../lib/utils";
+import { getFoldersForSession } from "@/cache/wrikeItem-cache";
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
+import { getFolderTaskIds } from "@/cache/folderTaskChildren-cache";
+import { getSpaceItemMetrics } from "@/cache/spaceItemMetrics-cache";
 
-function addANFActivityMetrics(anfActivity: BulkSpaceItemANFActivity) {
-    return ({
-        anfAddedToday: anfActivity.addedToday,
-        anfAddedThisWeek: anfActivity.addedWeek,
-        anfAddedThisMonth: anfActivity.addedMonth,
-        anfRemovedToday: anfActivity.removedToday,
-        anfRemovedThisWeek: anfActivity.removedWeek,
-        anfRemovedThisMonth: anfActivity.removedMonth
-    })
-}
+async function buildSpaceItemWarnings(parentItem: SpaceItem | undefined, childItemSharedIds: string[]) {
+    if (!parentItem) return '';
+    const warnings: string[] = [];
+    const parentSharedSet = new Set(parentItem.sharedIds);
+    if (!childItemSharedIds) return "";
+    for (const sid of childItemSharedIds ?? []) {
+        if (parentSharedSet.has(sid)) continue;
+        const parents = getAllParents(sid) ?? [];
+        let covered = false;
+        for (const pid of parents) {
+            if (parentSharedSet.has(pid)) { covered = true; break; }
+        }
 
-function addLatestANFDurationMetrics(anfDuration: ANFDuration) {
-    if (anfDuration.granularity === 'week') {
-        if (!sameMoment(anfDuration.bucket.slice(0, 10), startOfWeekMondayUTC().toISOString().slice(0, 10))) return {}
-
-        return ({
-            anfDurationWeek: anfDuration.avgduration ?? 0,
-            anfTopFiveDurationWeek: anfDuration.topfiveavgduration ?? 0,
-            anfOverdueWeek: anfDuration.avgoverduehours ?? 0,
-            anfOverdueCountsWeek: anfDuration.overdue_count,
-            anfTransitionCountsWeek: anfDuration.transitions_count,
-        })
-    }
-
-    if (anfDuration.granularity === 'month') {
-        if (!sameMoment(anfDuration.bucket, startOfMonthUTC().toISOString())) return {}
-
-        return ({
-            anfDurationMonth: anfDuration.avgduration ?? 0,
-            anfTopFiveDurationMonth: anfDuration.topfiveavgduration ?? 0,
-            anfOverdueMonth: anfDuration.avgoverduehours ?? 0,
-            anfOverdueCountsMonth: anfDuration.overdue_count,
-            anfTransitionCountsMonth: anfDuration.transitions_count,
-        })
-    }
-
-    if (anfDuration.granularity === 'quarter') {
-        if (!sameMoment(anfDuration.bucket, startOfQuarterUTC().toISOString())) return {}
-
-        return ({
-            anfDurationQuarter: anfDuration.avgduration ?? 0,
-            anfTopFiveDurationQuarter: anfDuration.topfiveavgduration ?? 0,
-            anfOverdueQuarter: anfDuration.avgoverduehours ?? 0,
-            anfOverdueCountsQuarter: anfDuration.overdue_count,
-            anfTransitionCountsQuarter: anfDuration.transitions_count,
-        })
-    }
-}
-
-function addCommentActivityMetrics(commentActivity: BulkSpaceItemCommentActivity) {
-    return ({
-        commentsToday: commentActivity.countToday,
-        commentsThisWeek: commentActivity.countWeek,
-        commentsThisMonth: commentActivity.countMonth,
-        commentAvgWordCountToday: Math.round(commentActivity.avgWordCountToday ?? 0),
-        commentAvgWordCountThisWeek: Math.round(commentActivity.avgWordCountWeek ?? 0),
-        commentAvgWordCountThisMonth: Math.round(commentActivity.avgWordCountMonth ?? 0)
-    })
-}
-
-function buildTaskMappings(tasks: WrikeTask[]) {
-    const parentToTaskIds = new Map<string, string[]>();
-
-    for (const t of tasks) {
-        for (const pid of t.parentIds ?? []) {
-            const arr = parentToTaskIds.get(pid);
-            if (arr) arr.push(t.id);
-            else parentToTaskIds.set(pid, [t.id]);
+        if (!covered) {
+            warnings.push(`${await getUserName(sid)} was explictly shared on a task level but not on a folder level!`);
         }
     }
 
-    return parentToTaskIds;
+    const warning = warnings.join("; ");
+    return warning;
 }
 
-function appendMetrics(spaceItem: SpaceItem, metrics: SpaceItemMetricData[]) {
-    return metrics.reduce((item, metric) => {
-        switch (metric.kind) {
-            case "ANF_ACTIVITY":
-                return { ...item, ...addANFActivityMetrics(metric.data) };
-            case "ANF_DURATION":
-                return { ...item, ...addLatestANFDurationMetrics(metric.data) };
-            case "COMMENT_ACTIVITY":
-                return { ...item, ...addCommentActivityMetrics(metric.data) };
-        }
-    }, spaceItem);
-}
-
-async function buildTaskSpaceItems(tasks: WrikeTask[], metricMap: Map<string, SpaceItemMetricData[]>): Promise<SpaceItem[]> {
+async function buildTaskSpaceItems(taskIds: string[], taskParentMap: Map<string, SpaceItem | undefined>): Promise<SpaceItem[]> {
+    const taskChunks = chunkArray(taskIds, 100);
+    const allTaskResponses = await Promise.all(
+        taskChunks.map((chunk) =>
+            axiosRequest<WrikeApiTasksResponse>('GET', `/tasks/${chunk.join(',')}`)
+        )
+    );
+    const taskDetails = allTaskResponses.flatMap(t => t.data.data);
     return Promise.all(
-        tasks.map(async task => {
+        taskDetails.map(async task => {
+            const parentItem = taskParentMap.get(task.id);
+            const warning = await buildSpaceItemWarnings(parentItem, task.sharedIds);
+            const itemMetrics = await getSpaceItemMetrics(task.id);
             const spaceItem = {
                 id: task.id,
                 itemName: task.title,
@@ -108,7 +52,7 @@ async function buildTaskSpaceItems(tasks: WrikeTask[], metricMap: Map<string, Sp
                 folderChildIds: [],
                 taskChildIds: task.subTaskIds || [],
                 subRows: [],
-                warning: "",
+                warning,
                 sharedIds: task.sharedIds,
                 sharedWith: task.sharedIds?.length
                     ? (await Promise.all(task.sharedIds
@@ -116,43 +60,68 @@ async function buildTaskSpaceItems(tasks: WrikeTask[], metricMap: Map<string, Sp
                         .map(getUserName))).filter(Boolean).join(", ")
                     : "",
                 permalink: task.permalink,
+                anfAddedDay: itemMetrics?.anfAddedDay ?? 0,
+                anfAddedWeek: itemMetrics?.anfAddedWeek ?? 0,
+                anfAddedMonth: itemMetrics?.anfAddedMonth ?? 0,
+                anfAddedLastMonth: itemMetrics?.anfAddedLastMonth ?? 0,
+                anfRemovedDay: itemMetrics?.anfRemovedDay ?? 0,
+                anfRemovedWeek: itemMetrics?.anfRemovedWeek ?? 0,
+                anfRemovedMonth: itemMetrics?.anfRemovedMonth ?? 0,
+                anfRemovedLastMonth: itemMetrics?.anfRemovedLastMonth ?? 0,
+                avgDurationWeek: itemMetrics?.avgDurationWeek ?? 0,
+                topFiveAvgDurationWeek: itemMetrics?.topFiveAvgDurationWeek ?? 0,
+                transitionsCountWeek: itemMetrics?.transitionsCountWeek ?? 0,
+                overdueCountWeek: itemMetrics?.overdueCountWeek ?? 0,
+                avgOverdueHoursWeek: itemMetrics?.avgOverdueHoursWeek ?? 0,
+                avgDurationMonth: itemMetrics?.avgDurationMonth ?? 0,
+                topFiveAvgDurationMonth: itemMetrics?.topFiveAvgDurationMonth ?? 0,
+                transitionsCountMonth: itemMetrics?.transitionsCountMonth ?? 0,
+                overdueCountMonth: itemMetrics?.overdueCountMonth ?? 0,
+                avgOverdueHoursMonth: itemMetrics?.avgOverdueHoursMonth ?? 0,
+                avgDurationLastMonth: itemMetrics?.avgDurationLastMonth ?? 0,
+                topFiveAvgDurationLastMonth: itemMetrics?.topFiveAvgDurationLastMonth ?? 0,
+                transitionsCountLastMonth: itemMetrics?.transitionsCountLastMonth ?? 0,
+                overdueCountLastMonth: itemMetrics?.overdueCountLastMonth ?? 0,
+                avgOverdueHoursLastMonth: itemMetrics?.avgOverdueHoursLastMonth ?? 0,
+                countDay: itemMetrics?.countDay ?? 0,
+                countWeek: itemMetrics?.countWeek ?? 0,
+                countMonth: itemMetrics?.countMonth ?? 0,
+                countLastMonth: itemMetrics?.countLastMonth ?? 0,
+                avgWordCountDay: itemMetrics?.avgWordCountDay ?? 0,
+                avgWordCountWeek: itemMetrics?.avgWordCountWeek ?? 0,
+                avgWordCountMonth: itemMetrics?.avgWordCountMonth ?? 0,
+                avgWordCountLastMonth: itemMetrics?.avgWordCountLastMonth ?? 0
             }
 
-            return appendMetrics(spaceItem, metricMap.get(task.id) ?? []);
+            return spaceItem;
         })
     );
 }
 
-async function handleTasks(tasks: WrikeTask[], metricMap: Map<string, SpaceItemMetricData[]>) {
-    const taskMappings = buildTaskMappings(tasks);
-    const taskSpaceItems = await buildTaskSpaceItems(tasks, metricMap);
-    return { taskSpaceItems, taskMappings };
-}
+async function handleTasks(rootFolders: SpaceItem[]) {
+    const entries = await Promise.all(
+        rootFolders.map(async (f) => {
+            const taskIds = await getFolderTaskIds(f.id);
+            return [f.id, taskIds] as [string, string[]];
+        })
+    );
 
-function collectFolderDescendantIds(rootIds: string[], folderMap: Map<string, WrikeFolder>) {
-    const visited = new Set<string>();
-    const stack = [...rootIds]
-    while (stack.length) {
-        const id = stack.pop()!;
-        if (visited.has(id)) continue;
-
-        visited.add(id);
-        const folder = folderMap.get(id);
-        if (!folder) continue;
-
-        for (const childId of folder.childIds ?? []) {
-            if (!visited.has(childId)) stack.push(childId);
+    const allTaskIds = entries.flatMap(([, ids]) => ids);
+    const uniqueTaskIds = [...new Set(allTaskIds)];
+    const taskParentMap = new Map<string, SpaceItem | undefined>();
+    for (const [folderId, taskIds] of entries) {
+        const folder = rootFolders.find(f => f.id === folderId);
+        for (const tid of taskIds) {
+            taskParentMap.set(tid, folder);
         }
     }
 
-    return [...visited];
+    return await buildTaskSpaceItems(uniqueTaskIds, taskParentMap);
 }
 
 async function buildFolderSpaceItems(
     folderIds: string[],
-    spaceTypeItemIds: string[],
-    taskMappings: Map<string, string[]>,
-    metricMap: Map<string, SpaceItemMetricData[]>): Promise<SpaceItem[]> {
+    spaceTypeItemIds: string[]): Promise<SpaceItem[]> {
     const folderChunks = chunkArray(folderIds, 100);
     const allFolderResponses = await Promise.all(
         folderChunks.map((chunk) =>
@@ -162,19 +131,21 @@ async function buildFolderSpaceItems(
     const folderDetails = allFolderResponses.flatMap(f => f.data.data);
     return Promise.all(
         folderDetails.map(async folder => {
+            const itemMetrics = await getSpaceItemMetrics(folder.id);
             const itemType: SpaceItem['itemType'] =
                 spaceTypeItemIds.includes(folder.id) ?
                     "Space" :
                     folder.project ?
                         "Project" :
-                        "Folder"
-            let spaceItem = ({
+                        "Folder";
+            const taskChildren = await getFolderTaskIds(folder.id) ?? [];
+            const spaceItem = ({
                 id: folder.id,
                 itemName: folder.title,
                 itemType: itemType,
                 author: folder.project?.authorId ? await getUserName(folder.project.authorId) || "" : "",
                 folderChildIds: folder.childIds || [],
-                taskChildIds: taskMappings.get(folder.id) ?? [],
+                taskChildIds: taskChildren,
                 subRows: [],
                 warning: "",
                 sharedIds: folder.sharedIds,
@@ -183,114 +154,108 @@ async function buildFolderSpaceItems(
                         .filter(sid => sid !== process.env.MAIN_UID)
                         .map(getUserName))).filter(Boolean).join(", ")
                     : "",
-                permalink: folder.permalink
-            })
-            const taskMetrics = metricMap.get(folder.id) ?? [];
+                permalink: folder.permalink,
+                anfAddedDay: itemMetrics?.anfAddedDay ?? 0,
+                anfAddedWeek: itemMetrics?.anfAddedWeek ?? 0,
+                anfAddedMonth: itemMetrics?.anfAddedMonth ?? 0,
+                anfAddedLastMonth: itemMetrics?.anfAddedLastMonth ?? 0,
+                anfRemovedDay: itemMetrics?.anfRemovedDay ?? 0,
+                anfRemovedWeek: itemMetrics?.anfRemovedWeek ?? 0,
+                anfRemovedMonth: itemMetrics?.anfRemovedMonth ?? 0,
+                anfRemovedLastMonth: itemMetrics?.anfRemovedLastMonth ?? 0,
+                avgDurationWeek: itemMetrics?.avgDurationWeek ?? 0,
+                topFiveAvgDurationWeek: itemMetrics?.topFiveAvgDurationWeek ?? 0,
+                transitionsCountWeek: itemMetrics?.transitionsCountWeek ?? 0,
+                overdueCountWeek: itemMetrics?.overdueCountWeek ?? 0,
+                avgOverdueHoursWeek: itemMetrics?.avgOverdueHoursWeek ?? 0,
+                avgDurationMonth: itemMetrics?.avgDurationMonth ?? 0,
+                topFiveAvgDurationMonth: itemMetrics?.topFiveAvgDurationMonth ?? 0,
+                transitionsCountMonth: itemMetrics?.transitionsCountMonth ?? 0,
+                overdueCountMonth: itemMetrics?.overdueCountMonth ?? 0,
+                avgOverdueHoursMonth: itemMetrics?.avgOverdueHoursMonth ?? 0,
+                avgDurationLastMonth: itemMetrics?.avgDurationLastMonth ?? 0,
+                topFiveAvgDurationLastMonth: itemMetrics?.topFiveAvgDurationLastMonth ?? 0,
+                transitionsCountLastMonth: itemMetrics?.transitionsCountLastMonth ?? 0,
+                overdueCountLastMonth: itemMetrics?.overdueCountLastMonth ?? 0,
+                avgOverdueHoursLastMonth: itemMetrics?.avgOverdueHoursLastMonth ?? 0,
+                countDay: itemMetrics?.countDay ?? 0,
+                countWeek: itemMetrics?.countWeek ?? 0,
+                countMonth: itemMetrics?.countMonth ?? 0,
+                countLastMonth: itemMetrics?.countLastMonth ?? 0,
+                avgWordCountDay: itemMetrics?.avgWordCountDay ?? 0,
+                avgWordCountWeek: itemMetrics?.avgWordCountWeek ?? 0,
+                avgWordCountMonth: itemMetrics?.avgWordCountMonth ?? 0,
+                avgWordCountLastMonth: itemMetrics?.avgWordCountLastMonth ?? 0
+            });
 
-            for (const metric of taskMetrics) {
-                switch (metric.kind) {
-                    case "ANF_ACTIVITY":
-                        spaceItem = { ...spaceItem, ...addANFActivityMetrics(metric.data as BulkSpaceItemANFActivity) };
-                        break;
-                    case "ANF_DURATION":
-                        spaceItem = { ...spaceItem, ...addLatestANFDurationMetrics(metric.data as ANFDuration) };
-                        break;
-                    case "COMMENT_ACTIVITY":
-                        spaceItem = { ...spaceItem, ...addCommentActivityMetrics(metric.data as BulkSpaceItemCommentActivity) };
-                        break;
-                }
-            }
-
-            return spaceItem
+            return spaceItem;
         })
     );
 }
 
 async function handleFolders(folders: WrikeFolder[],
-    rootIsSpace: boolean,
-    taskMappings: Map<string, string[]>,
-    metricMap: Map<string, SpaceItemMetricData[]>): Promise<{
+    rootIsSpace: boolean): Promise<{
         folderSpaceItems: SpaceItem[],
         rootFolderIds: string[],
     }> {
+    const filteredFolders = folders.filter(
+        folder => folder.title !== 'Personal'
+    );
     const byId = new Map<string, WrikeFolder>();
-    for (const f of folders) byId.set(f.id, f);
+    for (const f of filteredFolders) byId.set(f.id, f);
 
-    const rootFolder = folders.find((f) => f.title === "Root");
+    const rootFolder = filteredFolders.find((f) => f.title === "Root");
     if (!rootFolder?.childIds?.length) return { folderSpaceItems: [], rootFolderIds: [] };
 
     const rootSpaceItems = rootFolder.childIds
         .map((childId) => byId.get(childId))
         .filter((f): f is WrikeFolder => !!f && f.space === rootIsSpace);
-    const spaceTypeItemIds = rootIsSpace ? rootSpaceItems.map(si => si.id) : [];
     const rootFolderIds = rootSpaceItems.map(f => f.id);
-    const folderDescendantIds = collectFolderDescendantIds(rootFolderIds, byId);
-    const foldersToFetch = [...rootFolderIds, ...folderDescendantIds];
-    const folderSpaceItems = await buildFolderSpaceItems(foldersToFetch, spaceTypeItemIds, taskMappings, metricMap);
+    const spaceTypeItemIds = rootIsSpace ? rootFolderIds.map(si => si) : [];
+    const childItds = rootSpaceItems.flatMap(item => item.childIds);
+    const foldersToFetch = [...rootFolderIds, ...childItds];
+    const folderSpaceItems = await buildFolderSpaceItems(foldersToFetch, spaceTypeItemIds);
     return { folderSpaceItems, rootFolderIds };
-}
-
-function buildItemMetricMap(anfActivity: BulkSpaceItemANFActivity[], anfDuration: ANFDuration[], commentActivity: BulkSpaceItemCommentActivity[]) {
-    const metricMap = new Map<string, SpaceItemMetricData[]>();
-    const push = (rootId: string, metric: SpaceItemMetricData) => {
-        const arr = metricMap.get(rootId);
-        if (arr) arr.push(metric);
-        else metricMap.set(rootId, [metric]);
-    };
-
-    for (const a of anfActivity) push(a.root_id, { data: { ...a }, kind: "ANF_ACTIVITY" });
-    for (const d of anfDuration) push(d.root_id, { data: { ...d }, kind: "ANF_DURATION" });
-    for (const c of commentActivity) push(c.root_id, { data: { ...c }, kind: "COMMENT_ACTIVITY" });
-
-    return metricMap;
 }
 
 export async function fetchSpaceItems(rootIsSpace: boolean): Promise<{
     allSpaceItems: SpaceItem[],
     rootFolderIds: string[]
 }> {
-    const start = Date.now();
-    console.log('starting to load data')
     await cacheUsernames();
     await cacheAncestorMappings();
-    console.log('users retrieved')
-    console.log('Duration', Date.now() - start)
     const session = await getServerSession(authConfig);
     if (!session?.user.id) return { allSpaceItems: [], rootFolderIds: [] };
     const userId = session.user.id;
-    const [tasks, folders] = await Promise.all([
-        getTasksForSession(userId),
-        getFoldersForSession(userId)
-    ]);
-
-    console.log('fetched tasks and folders')
-    console.log('Duration', Date.now() - start)
-    const folderDescendantMap = getBulkFolderTasksTraversal(folders, tasks);
-    console.log('folder task traversal')
-    console.log('Duration', Date.now() - start)
-
-    const [anfActivity, anfDuration, commentActivity] = await Promise.all([
-        fetchBulkSpaceItemANFActivity(folderDescendantMap),
-        fetchBulkSpaceItemANFDuration(folderDescendantMap),
-        fetchBulkSpaceItemCommentActivity(folderDescendantMap)
-    ]);
-    console.log("Fetched from DB")
-    console.log('Duration', Date.now() - start)
-
-    const metricMap = buildItemMetricMap(anfActivity, anfDuration, commentActivity);
-    console.log("metric map built")
-    console.log('Duration', Date.now() - start)
-
-    // build task space items first & collect hierarchy mappings
-    const { taskSpaceItems, taskMappings } = await handleTasks(tasks, metricMap);
-    console.log('task space items done')
-    console.log('Duration', Date.now() - start)
-
-    // build folder space items & set hierarchy mappings in place
-    const { folderSpaceItems, rootFolderIds } = await handleFolders(folders, rootIsSpace, taskMappings, metricMap);
-    console.log('folder space items done')
-    console.log('Duration', Date.now() - start)
+    const folders = await getFoldersForSession(userId);
+    const { folderSpaceItems, rootFolderIds } = await handleFolders(folders, rootIsSpace);
+    const rootItems = folderSpaceItems.filter(e => rootFolderIds.includes(e.id));
+    const taskSpaceItems = await handleTasks(rootItems);
     const allSpaceItems = [...taskSpaceItems, ...folderSpaceItems];
-    console.log('items built')
     return { allSpaceItems, rootFolderIds }
 };
+
+export async function loadSecondLvlItemChildren(secondLvlItems: SpaceItem[]) {
+    const folderTypeChildren = secondLvlItems.flatMap(sr => sr.folderChildIds);
+    const taskTypeChildren = [];
+    const taskParentMap = new Map<string, SpaceItem | undefined>();
+    for (const item of secondLvlItems) {
+        taskTypeChildren.push(...item.taskChildIds);
+        for (const tid of item.taskChildIds) {
+            taskParentMap.set(tid, item);
+        }
+    }
+    const uniqueTaskIds = [...new Set(taskTypeChildren)];
+    const result: SpaceItem[] = [];
+
+    if (folderTypeChildren.length > 0) {
+        // fetch n+3 level folders 
+        result.push(...(await buildFolderSpaceItems(folderTypeChildren, [])));
+    }
+
+    if (taskTypeChildren.length > 0) {
+        result.push(...(await buildTaskSpaceItems(uniqueTaskIds, taskParentMap)));
+    }
+
+    return result;
+}
