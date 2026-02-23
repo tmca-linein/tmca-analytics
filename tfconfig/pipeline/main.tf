@@ -82,8 +82,8 @@ module "tmca-analytics-engine" {
 
   # ecs
   ecs_cluster_name        = "tmca-analytics-ecs-cluster"
-  cpu                     = 512
-  memory                  = 1024
+  cpu                     = 1024
+  memory                  = 4096
   asg_min_capacity        = 1
   asg_max_capacity        = 5
   asg_cpu_target_value    = 70

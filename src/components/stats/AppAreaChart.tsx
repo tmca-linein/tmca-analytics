@@ -25,23 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-
-type SeriesDef<T> = {
-    key: keyof T
-    label: string
-    color?: string
-}
-export type SelectFilterDef<TData> = {
-    id: string;
-    label: string;
-    options: Array<{ value: string; label: string }>;
-    defaultValue: string;
-    apply: (row: TData, selectedValue: string, allRows: TData[]) => boolean;
-    /** Optional: hide the filter entirely based on data */
-    hidden?: (allRows: TData[]) => boolean;
-    /** Optional: custom trigger className */
-    triggerClassName?: string;
-};
+import { SelectFilterDef, SeriesDef } from "@/types/stats"
 
 type AppAreaChartProps<TData extends Record<string, string | number>> = {
     chartTitle: string

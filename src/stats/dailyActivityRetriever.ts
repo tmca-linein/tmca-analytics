@@ -1,9 +1,9 @@
 import { getUserName } from '@/cache/user-cache';
-import { ActivityItem } from '@/components/stats/AppActivityWindow';
 import { ANFEvent, CommentEvent } from '@/generated/prisma';
 import { axiosRequest } from '@/lib/axios';
 import prisma from '@/lib/db';
 import { chunkArray } from '@/lib/utils';
+import { ActivityItem } from '@/types/stats';
 import { WrikeApiFolderResponse, WrikeApiTasksResponse, WrikeFolder, WrikeTask } from '@/types/wrikeItem';
 import { startOfDay, endOfDay } from 'date-fns';
 

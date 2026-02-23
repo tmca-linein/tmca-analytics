@@ -1,5 +1,5 @@
 "use client"
-import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
+import { LogOut, Moon, Sun, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useTheme } from "next-themes"
@@ -14,7 +14,6 @@ import {
 import { Button } from "./ui/button";
 import { SidebarTrigger } from "./ui/sidebar";
 import { useSession, signOut } from "next-auth/react";
-import { invalidateSessionCache } from "@/cache/wrikeItem-cache";
 
 const Navbar = () => {
   const router = useRouter();
@@ -61,10 +60,6 @@ const Navbar = () => {
             <DropdownMenuItem onClick={() => router.push(`/users/${session?.user?.id}`)}>
               <User className="h-[1.2rem] w-[1.2rem] mr-2" />
               Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
-              Settings
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={() => {
               signOut()

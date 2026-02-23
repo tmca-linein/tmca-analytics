@@ -4,7 +4,7 @@ resource "aws_cloudwatch_log_group" "main" {
 }
 
 resource "aws_ecs_task_definition" "main" {
-  family                   = local.service_name # unique name for task definition
+  family                   = local.service_name
   cpu                      = var.cpu
   memory                   = var.memory
   requires_compatibilities = ["FARGATE"]
@@ -112,8 +112,7 @@ resource "aws_ecs_service" "main" {
   name            = local.service_name
   cluster         = aws_ecs_cluster.tmca_analytics_platform.arn
   task_definition = aws_ecs_task_definition.main.arn
-  # depends_on      = [aws_lb_target_group.main]
-  launch_type = "FARGATE"
+  launch_type     = "FARGATE"
 
   desired_count                      = 1
   deployment_minimum_healthy_percent = 100

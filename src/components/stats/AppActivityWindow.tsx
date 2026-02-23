@@ -2,15 +2,7 @@
 
 import { Pin, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-
-export type ActivityItem = {
-    id: string;
-    title: string;
-    date: string;
-    description: string;
-    type: "ANF" | "comment";
-    link: string;
-};
+import { ActivityItem } from "@/types/stats";
 
 export function AppActivityWindow(
     props: { items: ActivityItem[] },

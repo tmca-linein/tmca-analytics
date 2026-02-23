@@ -1,15 +1,15 @@
 import ItemStatistics from '@/components/stats/AppItemStatistics';
 import { AppActivityWindow } from '@/components/stats/AppActivityWindow';
 import { getUserIdMapping } from "@/cache/legacyId-cache";
-import CommentsChart, { CommentsRow } from '../../../components/stats/AppCommentsChart';
+import CommentsChart from '../../../components/stats/AppCommentsChart';
 import AnfDuration from '../../../components/stats/AppAnfDuration';
 import { fetchHistoricalANFData, fetchUserANFActivity, fetchUserANFDuration } from '@/stats/anfRetriever';
 import { fetchTaskDailyActivity } from '@/stats/dailyActivityRetriever';
 import { fetchHistoricalCommentData, fetchUserCommentActivity } from '@/stats/commentsRetriever';
 import { AppActionItems } from "@/components/stats/AppActionItems";
 import { fetchUserActionItems } from "@/stats/actionItemsRetriever";
-import AnfStats, { AnfStatsRow } from "../../../components/stats/AppAnfStatsChart";
-import { ANFDuration } from '@/types/stats';
+import AnfStats from "../../../components/stats/AppAnfStatsChart";
+import { ANFDuration, AnfStatsRow, CommentsRow } from '@/types/stats';
 
 export default async function UserDataLoader(props: {
     userId: string;

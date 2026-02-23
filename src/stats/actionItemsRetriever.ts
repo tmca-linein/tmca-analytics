@@ -1,8 +1,7 @@
 import { axiosRequest } from "@/lib/axios";
 import { WrikeApiFolderResponse, WrikeApiTasksResponse, WrikeFolder, WrikeTask } from "@/types/wrikeItem";
-import { ActionItem } from "@/components/stats/AppActionItems";
 import { fetchTopLongestActiveANFDurations } from "./anfRetriever";
-import { ANFLongDurationItem } from "@/types/stats";
+import { ActionItem, ANFLongDurationItem } from "@/types/stats";
 import { chunkArray } from "@/lib/utils";
 
 type TaskResult<T> =

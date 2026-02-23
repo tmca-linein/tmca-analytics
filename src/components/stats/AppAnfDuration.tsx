@@ -1,9 +1,9 @@
 "use client";
 
-import AppLineChart, { SelectFilterDef } from "@/components/stats/AppLineChart";
+import AppLineChart from "@/components/stats/AppLineChart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sameMoment, startOfLastMonthUTC, startOfMonthUTC, startOfWeekMondayUTC } from "@/lib/utils";
-import { ANFDuration } from "@/types/stats";
+import { ANFDuration, SelectFilterDef } from "@/types/stats";
 import { useState } from "react";
 
 
